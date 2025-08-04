@@ -325,7 +325,7 @@ export default function LobbyPhase({
         </div>
 
         {/* Players Grid */}
-        <div className="max-w-5xl mx-auto mb-8">
+        <div className="max-w-6xl mx-auto mb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {players.map((player) => (
               <div
@@ -391,18 +391,6 @@ export default function LobbyPhase({
 
           {!currentPlayer.isHost && (
             <div className="space-y-4">
-              <Button
-                onClick={gameLogic.toggleReady}
-                disabled={countdown !== null}
-                className={`relative overflow-hidden font-mono text-xl px-10 py-6 rounded-lg border-2 transition-all duration-300 group ${
-                  currentPlayer.isReady
-                    ? "bg-gradient-to-r from-green-900 to-green-700 hover:from-green-800 hover:to-green-600 border-green-700 text-white shadow-[0_0_30px_rgba(34,197,94,0.4)]"
-                    : "bg-gradient-to-r from-gray-900 to-gray-700 hover:from-gray-800 hover:to-gray-600 border-gray-700 text-white shadow-[0_0_20px_rgba(107,114,128,0.3)]"
-                }`}
-              >
-                <span className="relative z-10">{currentPlayer.isReady ? "SIAP DISIKSA" : "BERSIAP UNTUK DERITA"}</span>
-                <span className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300 bg-white" />
-              </Button>
 
               <p className="text-red-400/80 text-sm font-mono tracking-wider animate-pulse">
                 MENUNGGU PERINTAH KEJAM DARI TUAN RUMAH...

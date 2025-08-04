@@ -227,7 +227,7 @@ export default function SoulStatus({
                 </p>
                 {isCurrentPlayer && (
                   <span className="text-xs bg-red-800 text-white px-2 py-1 rounded font-mono font-bold tracking-wider">
-                    YOUR SOUL
+                    Saya
                   </span>
                 )}
               </div>

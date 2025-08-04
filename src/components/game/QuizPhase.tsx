@@ -41,7 +41,7 @@ export default function QuizPhase({
   const params = useParams()
   const roomCode = params.roomCode as string
 
-  const [timeLeft, setTimeLeft] = useState(300) // 5 menit (300 detik) untuk seluruh sesi
+  const [timeLeft, setTimeLeft] = useState(gameState.timeRemaining) // 5 menit (300 detik) untuk seluruh sesi
   const [isClient, setIsClient] = useState(false)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [isAnswered, setIsAnswered] = useState(false)
