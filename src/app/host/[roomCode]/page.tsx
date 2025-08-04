@@ -606,7 +606,7 @@ export default function HostPage() {
                     Durasi Permainan
                   </Label>
                   <Select value={gameDuration} onValueChange={setGameDuration}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white rounded-lg">
+                    <SelectTrigger className="w-full bg-white/10 border-white/20 text-white rounded-lg">
                       <SelectValue placeholder="Pilih durasi" />
                     </SelectTrigger>
                     <SelectContent className="bg-black/95 text-white border-white/20 rounded-lg">
@@ -625,7 +625,7 @@ export default function HostPage() {
                     Jumlah Soal
                   </Label>
                   <Select value={questionCount} onValueChange={setQuestionCount}>
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white rounded-lg">
+                    <SelectTrigger className="w-full bg-white/10 border-white/20 text-white rounded-lg">
                       <SelectValue placeholder="Pilih jumlah soal" />
                     </SelectTrigger>
                     <SelectContent className="bg-black/95 text-white border-white/20 rounded-lg">
@@ -650,7 +650,7 @@ export default function HostPage() {
                   onClick={saveSettings}
                   className="bg-white text-black hover:bg-gray-200 rounded-lg"
                 >
-                  Simpan Pengaturan
+                  Simpan
                 </Button>
               </DialogFooter>
             </DialogContent>

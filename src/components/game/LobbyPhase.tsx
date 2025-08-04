@@ -325,8 +325,8 @@ export default function LobbyPhase({
         </div>
 
         {/* Players Grid */}
-        <div className="max-w-6xl mx-auto mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="max-w-7xl mx-auto mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {players.map((player) => (
               <div
                 key={player.id}
