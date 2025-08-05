@@ -4,10 +4,29 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Trophy, Zap, Star } from "lucide-react"
+import { Player } from "@/lib/supabase"
+
+export interface GameLogic {
+  showVictoryAnimation: boolean
+  showRunBooster: boolean
+  activateRunBooster: () => void
+  boostProgress: number
+  isBoostActive: boolean
+
+  timeLeft: number
+  playerPosition: { x: number; y: number }
+  isInSafeZone: boolean
+  currentLevel: number
+  safeZones: { x: number; y: number; radius: number }[]
+  movePlayer: (direction: "up" | "down" | "left" | "right") => void
+  isMoving: boolean
+  setSafeZones: (zones: { x: number; y: number; radius: number }[]) => void
+
+}
 
 interface VictoryPhaseProps {
-  currentPlayer: any
-  gameLogic: any
+  currentPlayer: Player
+  gameLogic: GameLogic
   questionsAnswered: number
 }
 
@@ -47,7 +66,7 @@ export default function VictoryPhase({ currentPlayer, gameLogic, questionsAnswer
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", duration: 0.8 }}>
             <Trophy className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
             <h1 className="text-3xl font-bold text-white mb-2">Congratulations!</h1>
-            <p className="text-purple-300">You've completed all {questionsAnswered} questions!</p>
+            <p className="text-purple-300">You&apos;ve completed all {questionsAnswered} questions!</p>
           </motion.div>
 
           {/* Player Stats */}

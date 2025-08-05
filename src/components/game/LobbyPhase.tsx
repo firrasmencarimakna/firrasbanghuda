@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import SoulStatus from "./SoulStatus"
 import CountdownPhase from "../CountDownPhase"
+import { GameLogic } from "./VictoryPhase"
 interface Player {
   id: string
   nickname: string
@@ -20,7 +21,7 @@ interface Player {
 interface LobbyPhaseProps {
   currentPlayer: Player
   players: Player[]
-  gameLogic: any
+  gameLogic: GameLogic
   isSoloMode: boolean
   wrongAnswers?: number
 }
@@ -36,7 +37,7 @@ export default function LobbyPhase({
   const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([])
   const [atmosphereText, setAtmosphereText] = useState("Dinding-dinding berbisik tentang dosa-dosamu...")
   const [countdown, setCountdown] = useState<number | null>(null)
-  const [room, setRoom] = useState<any>(null)
+  const [room, setRoom] = useState<null>(null)
   const [showCountdownPhase, setShowCountdownPhase] = useState(false)
 
   const atmosphereTexts = [

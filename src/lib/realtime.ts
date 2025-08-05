@@ -77,7 +77,7 @@ export class GameRealtime {
   }
 
   // Broadcast custom events
-  async broadcastEvent(roomId: string, event: string, payload: any) {
+  async broadcastEvent(roomId: string, event: string, payload: unknown) {
     const channel = this.channels.get(roomId)
     if (channel) {
       await channel.send({
@@ -89,7 +89,7 @@ export class GameRealtime {
   }
 
   // Listen to custom events
-  onBroadcast(roomId: string, event: string, callback: (payload: any) => void) {
+  onBroadcast(roomId: string, event: string, callback: (payload: unknown) => void) {
     const channel = this.channels.get(roomId)
     if (channel) {
       channel.on("broadcast", { event }, ({ payload }) => {

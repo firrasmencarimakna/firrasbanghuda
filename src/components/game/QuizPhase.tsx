@@ -8,15 +8,16 @@ import { Progress } from "@/components/ui/progress"
 import { getQuestionByIndex, getTotalQuestions } from "@/data/horror-questions"
 import { useRouter } from "next/navigation"
 import { useParams } from "next/navigation"
-import { supabase } from "@/lib/supabase"
+import { GameRoom, GameState, Player, supabase } from "@/lib/supabase"
 import ZombieFeedback from "./ZombieFeedback"
+import { GameLogic } from "./VictoryPhase"
 
 interface QuizPhaseProps {
-  room: any
-  gameState: any
-  currentPlayer: any
-  players: any[]
-  gameLogic: any
+  room: GameRoom
+  gameState: GameState
+  currentPlayer: Player
+  players: Player[]
+  gameLogic: GameLogic
   isSoloMode: boolean
   wrongAnswers: number
   resumeState?: {

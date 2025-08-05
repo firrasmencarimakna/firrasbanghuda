@@ -60,8 +60,8 @@ interface PlayersPanelProps {
   playerHealthStates: { [playerId: string]: PlayerHealthState }
   zombieState: ZombieState
   recentAttacks: Set<string>
-  getCharacterByType: (type: string) => any
-  getWorkingImagePath: (character: any) => string
+  getCharacterByType: (type: string) => CharacterData
+  getWorkingImagePath: (character: CharacterData) => string
 }
 
 export default function PlayersPanel({

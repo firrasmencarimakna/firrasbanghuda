@@ -47,8 +47,8 @@ interface RunningCharactersProps {
   animationTime: number
   gameMode: "normal" | "panic"
   centerX: number
-  getCharacterByType: (type: string) => any
-  getWorkingImagePath: (character: any) => string
+  getCharacterByType: (type: string) => CharacterData
+  getWorkingImagePath: (character: CharacterData) => string
 }
 
 export default function RunningCharacters({

@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { GameRoom, GameState, Player, supabase } from "@/lib/supabase"
 
 interface GameLogicProps {
-  room: any
-  gameState: any
-  players: any[]
-  currentPlayer: any
+  room: GameRoom
+  gameState: GameState
+  players: Player[]
+  currentPlayer: Player
 }
 
 export function useGameLogic({ room, gameState, players, currentPlayer }: GameLogicProps) {
@@ -30,7 +30,7 @@ export function useGameLogic({ room, gameState, players, currentPlayer }: GameLo
       const { error } = await supabase
         .from("players")
         .update({
-          is_ready: !currentPlayer.isReady,
+          is_ready: !currentPlayer.is_ready,
         })
         .eq("id", currentPlayer.id)
 
@@ -71,7 +71,7 @@ export function useGameLogic({ room, gameState, players, currentPlayer }: GameLo
         const { error: answerError } = await supabase.from("player_answers").insert({
           player_id: currentPlayer.id,
           room_id: room.id,
-          question_index: gameState.currentQuestion || 0,
+          question_index: gameState.current_question_index || 0,
           answer: answer,
           is_correct: isCorrect,
         })
@@ -84,14 +84,14 @@ export function useGameLogic({ room, gameState, players, currentPlayer }: GameLo
         console.log("✅ Answer submitted to database successfully")
 
         // 2. Update player stats
-        const updates: any = {}
+        const updates: Partial<Player> = {}
 
         if (isCorrect) {
-          updates.correct_answers = (currentPlayer.correctAnswers || 0) + 1
+          updates.correct_answers = (currentPlayer.correct_answers || 0) + 1
           updates.score = (currentPlayer.score || 0) + 10
           console.log("🎉 Correct answer - updating stats:", updates)
         } else {
-          updates.wrong_answers = (currentPlayer.wrongAnswers || 0) + 1
+          updates.wrong_answers = (currentPlayer.wrong_answers || 0) + 1
           console.log("💀 Wrong answer - updating stats:", updates)
 
           // Update local state for wrong answers
@@ -171,7 +171,7 @@ export function useGameLogic({ room, gameState, players, currentPlayer }: GameLo
               damage: 1,
               attack_type: "wrong_answer",
               attack_data: {
-                question_index: gameState.currentQuestion || 0,
+                question_index: gameState.current_question_index || 0,
                 player_nickname: currentPlayer.nickname,
                 answer_given: answer,
               },
@@ -257,7 +257,7 @@ export function useGameLogic({ room, gameState, players, currentPlayer }: GameLo
   )
 
   const startGame = useCallback(async () => {
-    if (!room?.id || !currentPlayer?.isHost || isSubmitting) {
+    if (!room?.id || !currentPlayer?.is_host || isSubmitting) {
       return false
     }
 

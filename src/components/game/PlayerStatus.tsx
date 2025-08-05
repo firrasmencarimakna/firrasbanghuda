@@ -5,12 +5,18 @@ import { motion } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Player } from "@/lib/supabase"
 
+interface Question {
+  question: string
+  options: string[]
+  correct: number
+}
+
 interface PlayerStatusProps {
   currentPlayer: Player
   players: Player[]
   hasAnswered?: boolean
   selectedAnswer?: number | null
-  currentQuestion?: any
+  currentQuestion?: Question | null
   isSoloMode?: boolean
   wrongAnswers?: number
 }

@@ -32,7 +32,7 @@ export interface TransformedRoom {
   id: string
   status: string
   current_phase?: string
-  questions?: any[]
+  questions?: unknown[]
 }
 
 export function useGameData(roomCode: string | undefined, nickname: string | null) {

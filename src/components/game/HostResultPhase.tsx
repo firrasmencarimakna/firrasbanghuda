@@ -5,6 +5,7 @@ import { motion } from "framer-motion"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Skull, Trophy, Crown, Medal, Star, Home, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { GameLogic } from "./VictoryPhase"
 
 interface Player {
   id: string
@@ -20,7 +21,7 @@ interface Player {
 
 interface HostResultsPhaseProps {
   players: Player[]
-  gameLogic: any
+  gameLogic: GameLogic
   roomCode: string
 }
 

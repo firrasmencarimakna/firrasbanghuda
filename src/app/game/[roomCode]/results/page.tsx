@@ -11,6 +11,7 @@ import { motion, AnimatePresence, Transition } from "framer-motion"
 import { HorrorCard } from "@/components/ui/horror-card"
 import type { GameRoom } from "@/lib/supabase"
 import Image from "next/image"
+import { RealtimeChannel } from "@supabase/supabase-js"
 
 interface GameCompletion {
   id: string
@@ -94,7 +95,7 @@ export default function ResultsPage() {
   } | null>(null)
 
   const isMountedRef = useRef(true)
-  const channelsRef = useRef<any[]>([])
+  const channelsRef = useRef<RealtimeChannel[]>([])
 
   const initializePlayerData = useCallback(() => {
     console.log("Initializing player data...");
@@ -248,7 +249,7 @@ export default function ResultsPage() {
         setRecentActivities(activityData)
         console.log("Recent activities set:", activityData)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Fetch initial data error:", err.message)
       setError(err.message || "Gagal memuat data tambahan, menampilkan hasil parsial")
     } finally {
@@ -285,7 +286,7 @@ export default function ResultsPage() {
             .order("completed_at", { ascending: false })
 
           if (!error && completionsData && isMountedRef.current) {
-            const formattedCompletions = completionsData.map((completion: any) => ({
+            const formattedCompletions = completionsData.map((completion: GameCompletion) => ({
               ...completion,
               players: {
                 nickname: completion.players?.nickname || "Tidak Dikenal",

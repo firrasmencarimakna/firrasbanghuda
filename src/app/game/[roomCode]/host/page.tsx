@@ -58,6 +58,7 @@ interface ZombieState {
 
 interface GameCompletion {
   id: string
+  players: Player
   player_id: string
   room_id: string
   final_health: number
@@ -308,7 +309,7 @@ export default function HostGamePage() {
 
       if (completionError) console.error("Error fetching completion data:", completionError)
       else {
-        const completed = completionData?.map((completion: any) => completion.players) || []
+        const completed = completionData?.map((completion: GameCompletion) => completion.players) || []
         setCompletedPlayers(completed)
         if (completed.length > 0) {
           setShowCompletionPopup(true)

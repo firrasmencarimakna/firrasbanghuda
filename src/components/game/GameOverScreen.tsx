@@ -5,12 +5,14 @@ import { useParams } from "next/navigation"
 import { Skull, Eye, Zap, RotateCcw, Home, Trophy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { GameLogic } from "./VictoryPhase"
+import { Player } from "@/lib/supabase"
 
 interface GameOverScreenProps {
-  currentPlayer: any
+  currentPlayer: Player
   wrongAnswers: number
   restartGame: () => void
-  gameLogic: any
+  gameLogic: GameLogic
 }
 
 export default function GameOverScreen({ currentPlayer, wrongAnswers, restartGame, gameLogic }: GameOverScreenProps) {

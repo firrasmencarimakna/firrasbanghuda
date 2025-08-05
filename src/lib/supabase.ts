@@ -15,7 +15,7 @@ export type GameRoom = {
   current_phase: "lobby" | "quiz" | "minigame" | "finished"
   max_players: number // Used in HostPage.tsx for player count display
   duration: number // Used in HostPage.tsx for duration display
-  questions: any[] // Used in HostPage.tsx, can be refined later
+  questions: unknown[] // Used in HostPage.tsx, can be refined later
   created_at: string
   updated_at: string
 }
@@ -32,6 +32,7 @@ export type Player = {
   wrong_answers: number // From first definition
   is_host: boolean // Used in LobbyPhase.tsx and HostPage.tsx
   is_alive: boolean
+  is_ready: boolean // Used in LobbyPhase.tsx for player readiness
   power_ups: number // From first definition
   position_x: number // From first definition
   position_y: number // From first definition
@@ -45,11 +46,11 @@ export type GameState = {
   room_id: string
   current_question_index: number // From second definition
   phase: "lobby" | "quiz" | "minigame" | "finished" // From first definition
-  time_remaining: number
+  timeRemaining: number
   lives_remaining: number // From first definition
   target_correct_answers: number // From first definition
   current_correct_answers: number // From first definition
-  minigame_data: any // From first definition
+  minigame_data: unknown // From first definition
   status: "waiting" | "playing" | "finished" // From second definition
   created_at: string
   updated_at: string
@@ -83,7 +84,7 @@ export type PlayerAttack = {
   target_player_id: string
   damage: number
   attack_type: string
-  attack_data: any // From second definition
+  attack_data: unknown // From second definition
   created_at: string
 }
 

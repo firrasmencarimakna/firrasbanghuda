@@ -11,7 +11,7 @@ export interface PlayerWithHealth {
   powerUps?: string[]
 }
 
-export function createPlayerWithDefaults(player: any): PlayerWithHealth {
+export function createPlayerWithDefaults(player: Partial<PlayerWithHealth>): PlayerWithHealth {
   return {
     ...player,
     health: player.health ?? 3,

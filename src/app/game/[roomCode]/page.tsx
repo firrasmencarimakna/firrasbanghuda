@@ -19,6 +19,28 @@ interface PlayerHealthState {
   lastAttackTime: number
 }
 
+// Interface for Supabase health state payload
+interface HealthStatePayload {
+  new: {
+    player_id: string
+    health: number
+    is_being_attacked: boolean
+    last_attack_time: string
+    room_id: string
+  }
+}
+
+// Interface for Supabase attack event payload
+interface AttackEventPayload {
+  new: {
+    target_player_id: string
+    room_id: string
+    attack_data?: {
+      player_nickname?: string
+    }
+  }
+}
+
 // Common wrapper component for game phases
 function GameWrapper({ children }: { children: React.ReactNode }) {
   return <div className="min-h-screen bg-gray-900">{children}</div>
@@ -173,7 +195,7 @@ export default function GamePage() {
 
   // Handle health state updates from host
   const handleHealthStateUpdate = useCallback(
-    (payload: any) => {
+    (payload: HealthStatePayload) => {
       if (!isMountedRef.current || !payload.new) return
 
       const healthData = payload.new
@@ -208,7 +230,7 @@ export default function GamePage() {
 
   // Handle attack events
   const handleAttackEvent = useCallback(
-    (payload: any) => {
+    (payload: AttackEventPayload) => {
       if (!isMountedRef.current || !payload.new || !currentPlayer) return
 
       const attackData = payload.new
