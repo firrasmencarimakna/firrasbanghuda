@@ -79,6 +79,61 @@ export default function LobbyPhase({
     "Jiwamu sudah hilang...",
   ];
 
+  useEffect(() => {
+    if (!gameLogic.room?.id) return;
+
+    // Set ruangan awal dari gameLogic
+    setRoom(gameLogic.room);
+
+    const channel = supabase
+      .channel(`lobby-room-${gameLogic.room.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "game_rooms",
+          filter: `id=eq.${gameLogic.room.id}`,
+        },
+        (payload) => {
+          console.log("📡 Pembaruan ruangan diterima:", payload.new);
+          setRoom(payload.new); // Perbarui state ruangan dengan data terbaru
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [gameLogic.room?.id]);
+
+  useEffect(() => {
+    // Jika tidak ada timestamp, pastikan countdown tidak tampil.
+    if (!room?.countdown_start) {
+      setCountdown(null);
+      return;
+    }
+
+    // Hitung waktu selesai countdown (timestamp mulai + 10 detik)
+    const countdownEndTime = new Date(room.countdown_start).getTime() + 10000;
+
+    const updateCountdown = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((countdownEndTime - now) / 1000));
+      setCountdown(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+      }
+    };
+
+    const timer = setInterval(updateCountdown, 1000);
+    updateCountdown(); // Panggil sekali di awal agar tidak ada jeda 1 detik
+
+    return () => clearInterval(timer); // Cleanup
+  }, [room?.countdown_start]);
+
+
   // Mengambil data ruangan dari Supabase
   useEffect(() => {
     const fetchRoom = async () => {
@@ -277,33 +332,14 @@ export default function LobbyPhase({
 
   // Fungsi mulai permainan untuk host
   const handleStartGame = async () => {
-    if (!currentPlayer.isHost || !currentPlayer.room_id) {
-      console.warn("⚠️ LobbyPhase: Bukan host atau tidak ada room_id");
-      return;
-    }
-
+    if (!currentPlayer.isHost || !gameLogic.room?.id) return;
     try {
-      console.log("🎮 LobbyPhase: Host memulai permainan...");
-      const countdownStartTime = new Date().toISOString();
-
-      const { error } = await supabase
+      await supabase
         .from("game_rooms")
-        .update({
-          countdown_start: countdownStartTime,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", currentPlayer.room_id);
-
-      if (error) {
-        console.error("❌ LobbyPhase: Gagal memulai countdown:", error);
-        alert("Gagal memulai countdown: " + error.message);
-        return;
-      }
-
-      console.log("✅ LobbyPhase: Countdown berhasil dimulai dengan timestamp:", countdownStartTime);
+        .update({ countdown_start: new Date().toISOString() })
+        .eq("id", gameLogic.room.id);
     } catch (error) {
-      console.error("❌ LobbyPhase: Gagal memulai countdown:", error);
-      alert("Gagal memulai countdown: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"));
+      console.error("Gagal memulai countdown:", error);
     }
   };
 
@@ -389,6 +425,18 @@ export default function LobbyPhase({
       <div className="absolute bottom-0 right-0 w-64 h-64 opacity-20">
         <div className="absolute w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/70 to-transparent" />
       </div>
+
+      {countdown !== null && countdown > 0 && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80"
+          >
+            <div className="text-9xl font-mono font-bold text-red-500 animate-pulse">
+              {countdown}
+            </div>
+          </motion.div>
+        )}
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
