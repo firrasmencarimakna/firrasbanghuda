@@ -153,9 +153,9 @@ export default function QuizPhase({
       const { error } = await supabase.from("game_completions").insert({
         player_id: currentPlayer.id,
         room_id: room.id,
-        final_health: currentPlayer.health,
-        correct_answers: currentPlayer.correct_answers || finalCorrect,
-        total_questions_answered: currentPlayer.current_question_index + 1 || totalAnswered,
+        final_health: finalHealth || currentPlayer.health,
+        correct_answers: finalCorrect || currentPlayer.correct_answers,
+        total_questions_answered: totalAnswered || currentPlayer.current_question_index + 1,
         is_eliminated: isEliminated,
         completion_type: isEliminated ? "eliminated" : finalCorrect === totalQuestions ? "completed" : "partial",
         completed_at: new Date().toISOString(),

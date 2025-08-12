@@ -11,6 +11,7 @@ import { supabase, type Player } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import QRCode from "react-qr-code";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const validChaserTypes = ["zombie", "monster1", "monster2", "monster3", "darknight"] as const;
 type ChaserType = typeof validChaserTypes[number];
@@ -46,6 +47,7 @@ export default function HostPage() {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [flickerText, setFlickerText] = useState(true);
   const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([]);
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   // const [atmosphereText, setAtmosphereText] = useState("Dinding-dinding berbisik tentang dosa-dosamu...");
 
   const TOTAL_QUESTIONS_AVAILABLE = 50;
@@ -473,12 +475,12 @@ export default function HostPage() {
         )}
       </AnimatePresence>
 
-      <div className={`relative z-10 container mx-auto px-4 py-12 max-w-6xl ${countdown !== null ? "hidden" : ""}`}>
+      <div className={`relative z-10 container mx-auto px-4 py-4 max-w-6xl ${countdown !== null ? "hidden" : ""}`}>
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <div className="flex items-center justify-center py-4 mb-6">
             <HeartPulse className="w-12 h-12 text-red-500 mr-4 animate-pulse" />
@@ -500,15 +502,65 @@ export default function HostPage() {
             transition={{ delay: 0.3 }}
             className="inline-flex items-center gap-4 bg-black/40 border border-red-900/50 rounded-lg p-4 hover:border-red-500 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]"
           >
-            <motion.div
-              className="w-16 h-16 md:w-24 md:h-24 border bg-white border-red-900/50 rounded overflow-hidden p-1">
-              <QRCode
-                value={`${window.location.origin}/?code=${roomCode}`}
-                size={256}
-                style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                viewBox={`0 0 256 256`}
-              />
-            </motion.div>
+            <Dialog open={isQrDialogOpen} onOpenChange={setIsQrDialogOpen}>
+              <DialogTrigger asChild>
+                <motion.div
+                  className="w-16 h-16 md:w-24 md:h-24 border bg-white border-red-900/50 rounded overflow-hidden p-1 cursor-pointer hover:scale-105 transition-transform"
+                  title="Klik untuk memperbesar QR"
+                >
+                  <QRCode
+                    value={`${window.location.origin}/?code=${roomCode}`}
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
+                </motion.div>
+              </DialogTrigger>
+
+              <DialogContent className="bg-black/95 text-white border-red-500/50 max-w-sm rounded-xl p-6 shadow-[0_0_15px_rgba(255,0,0,0.5)]">
+                <DialogHeader className="mb-4">
+                  <DialogTitle className="text-2xl text-center font-bold text-red-400 font-mono tracking-wider">
+                    Pindai atau Salin Kode
+                  </DialogTitle>
+                </DialogHeader>
+
+                {/* QR Code besar */}
+                <div className="bg-white p-4 rounded-lg mx-auto w-[70%]">
+                  <QRCode
+                    value={`${window.location.origin}/?code=${roomCode}`}
+                    size={256}
+                    style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                    viewBox={`0 0 256 256`}
+                  />
+                </div>
+
+                {/* Tampilan Kode Game & Tombol Copy */}
+                <div className="mt-6 flex items-center justify-center bg-black/40 p-3 rounded-lg border border-red-500/20">
+                  <div className="text-center flex-grow">
+                    <div className="text-red-400 text-sm font-mono">Kode Game</div>
+                    <div className="text-3xl font-mono font-bold text-red-500 tracking-wider">
+                      {roomCode}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="lg" // Ukuran lebih besar agar mudah diklik
+                    onClick={copyRoomCode}
+                    className="text-red-400 hover:bg-red-500/20 rounded-xl p-3 ml-4"
+                    aria-label="Salin kode game"
+                  >
+                    <motion.div
+                      key={copied ? "check" : "copy"}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                    >
+                      {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
+                    </motion.div>
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
             <div className="text-center">
               <div className="text-red-400 text-sm font-mono">Kode Game</div>
               <div className="text-2xl md:text-3xl font-mono font-bold text-red-500 tracking-wider">{roomCode}</div>
