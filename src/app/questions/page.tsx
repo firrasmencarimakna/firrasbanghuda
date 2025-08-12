@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -18,7 +17,7 @@ type Quiz = {
   id: string
   theme: string
   description?: string
-  duration?: number // Added duration field
+  duration?: number
 }
 
 type Question = {
@@ -42,7 +41,7 @@ export default function QuestionsCRUD() {
   const [quizFormData, setQuizFormData] = useState({
     theme: "",
     description: "",
-    duration: "", // Added duration to form data
+    duration: "",
   })
   const [questionFormData, setQuestionFormData] = useState({
     question_type: "multiple_choice",
@@ -62,7 +61,7 @@ export default function QuestionsCRUD() {
     setLoading(true)
     const { data: quizzesData, error: quizzesError } = await supabase
       .from("quizzes")
-      .select("id, theme, description, duration") // Added duration to select
+      .select("id, theme, description, duration")
       .order("created_at", { ascending: false })
 
     if (quizzesError) {
@@ -99,7 +98,7 @@ export default function QuestionsCRUD() {
     setQuizFormData({ ...quizFormData, [name]: name === "duration" ? value : value })
   }
 
-  const handleQuestionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleQuestionInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setQuestionFormData({ ...questionFormData, [e.target.name]: e.target.value })
   }
 
@@ -119,7 +118,6 @@ export default function QuestionsCRUD() {
     }
 
     if (selectedQuiz) {
-      // Update Quiz
       const { error } = await supabase
         .from("quizzes")
         .update({ theme, description, duration: parseInt(duration) })
@@ -132,7 +130,6 @@ export default function QuestionsCRUD() {
         resetQuizForm()
       }
     } else {
-      // Create Quiz
       const { data, error } = await supabase
         .from("quizzes")
         .insert({ theme, description, duration: parseInt(duration) })
@@ -156,8 +153,12 @@ export default function QuestionsCRUD() {
 
     if (!quiz_id) return
 
+    if (!options.includes(correct_answer)) {
+      alert("Jawaban benar harus salah satu dari opsi yang diberikan!")
+      return
+    }
+
     if (selectedQuestion) {
-      // Update Question
       const { error } = await supabase
         .from("quiz_questions")
         .update({
@@ -176,7 +177,6 @@ export default function QuestionsCRUD() {
         resetQuestionForm()
       }
     } else {
-      // Create Question
       const { error } = await supabase
         .from("quiz_questions")
         .insert({
@@ -203,19 +203,17 @@ export default function QuestionsCRUD() {
     setQuizFormData({
       theme: quiz.theme,
       description: quiz.description || "",
-      duration: quiz.duration?.toString() || "", // Convert duration to string for input
+      duration: quiz.duration?.toString() || "",
     })
   }
 
   const handleDeleteQuiz = async (id: string) => {
     if (confirm("Yakin ingin menghapus quiz ini? Semua soal di dalamnya juga akan dihapus.")) {
-      // First delete questions
       await supabase
         .from("quiz_questions")
         .delete()
         .eq("quiz_id", id)
 
-      // Then delete quiz
       const { error } = await supabase
         .from("quizzes")
         .delete()
@@ -452,13 +450,20 @@ export default function QuestionsCRUD() {
                                     </div>
                                     <div>
                                       <Label htmlFor="correct_answer" className="font-mono">Jawaban Benar</Label>
-                                      <Input
+                                      <select
                                         id="correct_answer"
                                         name="correct_answer"
                                         value={questionFormData.correct_answer}
                                         onChange={handleQuestionInputChange}
-                                        className="bg-black/50 border-red-900/50 text-red-200 font-mono focus:border-red-400/50 focus:ring-red-400/20"
-                                      />
+                                        className="w-full mt-2 bg-black/50 border-red-900/50 text-red-200 font-mono focus:border-red-400/50 focus:ring-red-400/20 rounded-md"
+                                      >
+                                        <option value="">Pilih jawaban benar</option>
+                                        {questionFormData.options.map((opt, idx) => (
+                                          <option key={idx} value={opt} disabled={!opt}>
+                                            {opt || `Opsi ${idx + 1} (kosong)`}
+                                          </option>
+                                        ))}
+                                      </select>
                                     </div>
                                     <Button type="submit" className="w-full font-mono">Update</Button>
                                   </form>
@@ -480,7 +485,6 @@ export default function QuestionsCRUD() {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Question Modal */}
       <Dialog open={isAddQuestionModalOpen} onOpenChange={setIsAddQuestionModalOpen}>
         <DialogContent className="bg-black/90 border-red-900/50 text-red-200">
           <DialogHeader>
@@ -531,20 +535,26 @@ export default function QuestionsCRUD() {
             </div>
             <div>
               <Label htmlFor="correct_answer" className="font-mono">Jawaban Benar</Label>
-              <Input
+              <select
                 id="correct_answer"
                 name="correct_answer"
                 value={questionFormData.correct_answer}
                 onChange={handleQuestionInputChange}
-                className="bg-black/50 border-red-900/50 text-red-200 font-mono focus:border-red-400/50 focus:ring-red-400/20"
-              />
+                className="w-full mt-2 bg-black/50 border-red-900/50 text-red-200 font-mono focus:border-red-400/50 focus:ring-red-400/20 rounded-md"
+              >
+                <option value="">Pilih jawaban benar</option>
+                {questionFormData.options.map((opt, idx) => (
+                  <option key={idx} value={opt} disabled={!opt}>
+                    {opt || `Opsi ${idx + 1} (kosong)`}
+                  </option>
+                ))}
+              </select>
             </div>
             <Button type="submit" className="w-full font-mono">{selectedQuestion ? "Update" : "Simpan"}</Button>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Quiz Modal */}
       <Dialog open={!!selectedQuiz && !isAddQuizModalOpen} onOpenChange={(open) => !open && resetQuizForm()}>
         <DialogContent className="bg-black/90 border-red-900/50 text-red-200">
           <DialogHeader>
