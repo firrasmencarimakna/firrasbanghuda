@@ -27,6 +27,9 @@ interface QuizPhaseProps {
     speed?: number;
     isResuming: boolean;
   };
+  onGameComplete?: (result: any) => void;
+  onProgressUpdate?: (progress: { health: number; correctAnswers: number; currentIndex: number }) => void;
+
 }
 
 export default function QuizPhase({
@@ -38,6 +41,8 @@ export default function QuizPhase({
   isSoloMode,
   wrongAnswers,
   resumeState,
+  onGameComplete,
+  onProgressUpdate,
 }: QuizPhaseProps) {
   const router = useRouter();
   const params = useParams();
@@ -171,13 +176,22 @@ export default function QuizPhase({
     }
   };
 
-  const saveAnswerAndUpdateHealth = async (answer: string, isCorrectAnswer: boolean) => {
+  const saveAnswerAndUpdateHealth = async (answer: string, isCorrectAnswer: boolean, isHealthPenalty = false) => {
     try {
       setIsProcessingAnswer(true);
 
-      const newSpeed = isCorrectAnswer ? Math.min(playerSpeed + 5, 100) : playerSpeed; // Cap speed at 100
-      console.log(`Menyimpan jawaban: isCorrect=${isCorrectAnswer}, speed=${newSpeed}`);
+      let newSpeed = playerSpeed;
+      let newHealth = playerHealth;
 
+      if (isCorrectAnswer) {
+        newSpeed = Math.min(playerSpeed + 5, 100);
+      } else if (!isCorrectAnswer && !isHealthPenalty) {
+        newSpeed = Math.max(20, playerSpeed - 5);
+      } else if (!isCorrectAnswer && isHealthPenalty) {
+        newHealth = playerHealth - 1;
+      }
+
+      // Simpan jawaban
       const { error: answerError } = await supabase.from("player_answers").insert({
         player_id: currentPlayer.id,
         room_id: room.id,
@@ -192,50 +206,15 @@ export default function QuizPhase({
         return false;
       }
 
-      setInactivityCountdown(null); // Reset inactivity countdown on answer
+      // Update speed/health di database
+      await supabase
+        .from("player_health_states")
+        .update({ speed: newSpeed, health: newHealth, last_answer_time: new Date().toISOString() })
+        .eq("player_id", currentPlayer.id)
+        .eq("room_id", room.id);
 
-      if (isCorrectAnswer) {
-        const { data: speedResult, error: speedError } = await supabase.rpc("handle_correct_answer_speed", {
-          p_player_id: currentPlayer.id,
-          p_room_id: room.id,
-          p_question_index: currentQuestionIndex,
-          p_answer: answer,
-        });
-
-        if (speedError) {
-          console.error("Gagal menangani kecepatan untuk jawaban benar:", speedError);
-          return false;
-        }
-
-        console.log("Hasil kecepatan RPC:", speedResult);
-
-        if (speedResult) {
-          setPlayerSpeed(speedResult.new_speed);
-          setPlayerHealth(speedResult.new_health);
-          return speedResult;
-        }
-      } else {
-        const { data: attackResult, error: attackError } = await supabase.rpc("handle_wrong_answer_attack", {
-          p_player_id: currentPlayer.id,
-          p_room_id: room.id,
-          p_question_index: currentQuestionIndex,
-          p_answer: answer,
-          p_player_nickname: currentPlayer.nickname,
-        });
-
-        if (attackError) {
-          console.error("Gagal menangani serangan:", attackError);
-          return false;
-        }
-
-        console.log("Hasil serangan:", attackResult);
-
-        if (attackResult) {
-          setPlayerSpeed(attackResult.new_speed);
-          setPlayerHealth(attackResult.new_health);
-          return attackResult;
-        }
-      }
+      setPlayerSpeed(newSpeed);
+      setPlayerHealth(newHealth);
 
       return true;
     } catch (error) {
@@ -288,6 +267,17 @@ export default function QuizPhase({
     }
   };
 
+  useEffect(() => {
+    if (onProgressUpdate) {
+      onProgressUpdate({
+        health: playerHealth,
+        correctAnswers,
+        currentIndex: currentQuestionIndex,
+      });
+    }
+  }, [playerHealth, correctAnswers, currentQuestionIndex]);
+
+
   const checkInactivityPenalty = async () => {
     if (!room?.id || !currentPlayer?.id || playerHealth <= 0 || isProcessingAnswer) {
       console.log("⚠️ Skipping inactivity penalty check: invalid room, player, eliminated, or processing answer");
@@ -315,7 +305,7 @@ export default function QuizPhase({
       console.log(`🕒 Pemeriksaan ketidakaktifan: timeSinceLastAnswer=${timeSinceLastAnswer}s, speed=${data.speed}`);
 
       if (timeSinceLastAnswer >= 0 && timeSinceLastAnswer < 20 && data.speed > 20) {
-        const countdown = Math.ceil(20 - timeSinceLastAnswer);
+        const countdown = Math.ceil(10 - timeSinceLastAnswer);
         console.log(`⏲️ Memulai countdown penalti: ${countdown}s`);
         setInactivityCountdown(countdown);
       } else if (timeSinceLastAnswer >= 20 && data.speed > 20) {
@@ -330,7 +320,7 @@ export default function QuizPhase({
         setInactivityCountdown(null);
       } else {
         if (inactivityCountdown !== null) {
-          console.log("🔄 Menghapus countdown penalti karena pemain aktif atau kecepatan <= 20");
+          console.log("🔄 Menghapus countdown penalti karena pemain aktif atau kecepatan <= 10");
           setInactivityCountdown(null);
         }
       }
@@ -360,27 +350,17 @@ export default function QuizPhase({
     // Pastikan data disimpan ke database sebelum redirect
     await saveGameCompletion(health, correct, total, isEliminated);
 
-    const urlParams = new URLSearchParams({
-      health: health.toString(),
-      correct: correct.toString(),
-      total: total.toString(),
-      nickname: currentPlayer.nickname,
-      ...(isEliminated && { eliminated: "true" }),
-      ...(isPerfect && { perfect: "true" }),
-    });
-
     const lastResult = {
       playerId: currentPlayer.id,
       roomCode: roomCode,
       nickname: currentPlayer.nickname,
-      health: health,
+      health: isEliminated ? 0 : health,
       correct: correct,
       total: total,
       eliminated: isEliminated,
     }
     localStorage.setItem("lastGameResult", JSON.stringify(lastResult));
-    const Yuhu = JSON.parse(localStorage.getItem("lastGameResult") || "{}");
-    console.log("Menyimpan hasil terakhir ke localStorage LASSSSSSSSSSSS:", Yuhu);
+    if (onGameComplete) onGameComplete(lastResult);
 
     router.push(`/game/${roomCode}/results`);
   };
@@ -508,7 +488,40 @@ export default function QuizPhase({
     setIsCorrect(false);
     setShowFeedback(true);
 
-    await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false);
+    // Jika speed <= 30, langsung serang zombie (kurangi nyawa)
+    if (playerSpeed <= 30) {
+      const newSpeed = Math.max(20, playerSpeed - 5);
+      setPlayerHealth((prev) => prev - 1);
+      setPlayerSpeed(newSpeed);
+
+      // Update ke database
+      await supabase
+        .from("player_health_states")
+        .update({
+          health: playerHealth - 1,
+          speed: newSpeed,
+          is_being_attacked: true,
+          last_answer_time: new Date().toISOString(),
+        })
+        .eq("player_id", currentPlayer.id)
+        .eq("room_id", room.id);
+
+      // Simpan jawaban salah
+      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, true);
+    } else {
+      // Penalti speed seperti biasa
+      const newSpeed = Math.max(20, playerSpeed - 5);
+      setPlayerSpeed(newSpeed);
+
+      await supabase
+        .from("player_health_states")
+        .update({ speed: newSpeed, last_answer_time: new Date().toISOString() })
+        .eq("player_id", currentPlayer.id)
+        .eq("room_id", room.id);
+
+      // Simpan jawaban salah
+      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, false);
+    }
   };
 
   const formatTime = (seconds: number) => {

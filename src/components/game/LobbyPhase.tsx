@@ -80,32 +80,34 @@ export default function LobbyPhase({
   ];
 
   useEffect(() => {
-    if (!gameLogic.room?.id) return;
+  const fetchRoom = async () => {
+    if (!currentPlayer.room_id) {
+      console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
+      return;
+    }
 
-    // Set ruangan awal dari gameLogic
-    setRoom(gameLogic.room);
+    try {
+      console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
+      const { data, error } = await supabase
+        .from("game_rooms")
+        .select("*") // pastikan ambil semua kolom, termasuk countdown_start
+        .eq("id", currentPlayer.room_id)
+        .single();
 
-    const channel = supabase
-      .channel(`lobby-room-${gameLogic.room.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "game_rooms",
-          filter: `id=eq.${gameLogic.room.id}`,
-        },
-        (payload) => {
-          console.log("📡 Pembaruan ruangan diterima:", payload.new);
-          setRoom(payload.new); // Perbarui state ruangan dengan data terbaru
-        }
-      )
-      .subscribe();
+      if (error) {
+        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+        return;
+      }
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [gameLogic.room?.id]);
+      console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
+      setRoom(data);
+    } catch (error) {
+      console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+    }
+  };
+
+  fetchRoom();
+}, [currentPlayer.room_id]);
 
   useEffect(() => {
     // Jika tidak ada timestamp, pastikan countdown tidak tampil.
@@ -135,35 +137,35 @@ export default function LobbyPhase({
 
 
   // Mengambil data ruangan dari Supabase
-  useEffect(() => {
-    const fetchRoom = async () => {
-      if (!currentPlayer.room_id) {
-        console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
-        return;
-      }
+  // useEffect(() => {
+  //   const fetchRoom = async () => {
+  //     if (!currentPlayer.room_id) {
+  //       console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
+  //       return;
+  //     }
 
-      try {
-        console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
-        const { data, error } = await supabase
-          .from("game_rooms")
-          .select("*, countdown_start")
-          .eq("id", currentPlayer.room_id)
-          .single();
+  //     try {
+  //       console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
+  //       const { data, error } = await supabase
+  //         .from("game_rooms")
+  //         .select("*, countdown_start")
+  //         .eq("id", currentPlayer.room_id)
+  //         .single();
 
-        if (error) {
-          console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-          return;
-        }
+  //       if (error) {
+  //         console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+  //         return;
+  //       }
 
-        console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
-        setRoom(data);
-      } catch (error) {
-        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-      }
-    };
+  //       console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
+  //       setRoom(data);
+  //     } catch (error) {
+  //       console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+  //     }
+  //   };
 
-    fetchRoom();
-  }, [currentPlayer.room_id]);
+  //   fetchRoom();
+  // }, [currentPlayer.room_id]);
 
   // Langganan real-time untuk pembaruan ruangan
   useEffect(() => {
@@ -207,12 +209,12 @@ export default function LobbyPhase({
   }, [currentPlayer.room_id]);
 
   // Menangani transisi fase ke quiz
-  useEffect(() => {
-    if (room?.current_phase === "quiz") {
-      console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz");
-      router.push(`/game/${room.id}/play`);
-    }
-  }, [room?.current_phase, router]);
+  // useEffect(() => {
+  //   if (room?.current_phase === "quiz") {
+  //     console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz");
+  //     router.push(`/game/${room.id}/play`);
+  //   }
+  // }, [room?.current_phase, router]);
 
   // Menangani countdown berdasarkan countdown_start ruangan
   useEffect(() => {
@@ -458,7 +460,7 @@ export default function LobbyPhase({
         </div>
 
         {/* Tampilan Countdown */}
-        {countdown !== null && (
+        {/* {countdown !== null && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -473,7 +475,7 @@ export default function LobbyPhase({
               PERMAINAN DIMULAI DALAM...
             </div>
           </motion.div>
-        )}
+        )} */}
 
         {/* Grid Pemain */}
         <div className="max-w-5xl mx-auto mb-8 md:h-auto h-[calc(100vh-150px)] overflow-y-auto">

@@ -313,6 +313,8 @@ export default function HostGamePage() {
         return;
       }
 
+      const resetCountdown = newSpeed > playerState.speed;
+
       console.log(`✅ Pemain ${playerId} menjawab benar, kecepatan baru: ${newSpeed}`);
       updatePlayerState(
         playerId,
@@ -324,7 +326,7 @@ export default function HostGamePage() {
         {
           speed: newSpeed,
           isBeingAttacked: false,
-          countdown: newSpeed <= 30 ? 10 : undefined,
+          countdown: resetCountdown ? 10 : playerState.countdown, // reset hanya jika speed naik
         }
       );
 
@@ -793,9 +795,8 @@ export default function HostGamePage() {
     <div
       className="relative w-full h-screen bg-black overflow-hidden"
       style={{
-        transform: `translate(${Math.sin(animationTime * 0.1) * (gameMode === "panic" ? 5 : 2)}px, ${
-          Math.cos(animationTime * 0.1) * (gameMode === "panic" ? 3 : 1)
-        }px)`,
+        transform: `translate(${Math.sin(animationTime * 0.1) * (gameMode === "panic" ? 5 : 2)}px, ${Math.cos(animationTime * 0.1) * (gameMode === "panic" ? 3 : 1)
+          }px)`,
       }}
     >
       <audio src="/musics/zombies.mp3" autoPlay />

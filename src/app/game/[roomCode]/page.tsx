@@ -131,15 +131,18 @@ export default function GamePage() {
   const saveGameCompletion = useCallback(async () => {
     if (!currentPlayer || !room || !isMountedRef.current) return
 
+    const latestHealth = playerHealthStates[currentPlayer.id]?.health ?? quizState.health;
+
+
     try {
       const { error } = await supabase.from("game_completions").insert({
         player_id: currentPlayer.id,
         room_id: room.id,
-        final_health: quizState.health,
+        final_health: latestHealth <= 0 ? 0 : latestHealth,
         correct_answers: quizState.correctAnswers,
-        total_questions_answered: quizState.currentIndex + 1,
-        is_eliminated: quizState.health <= 0,
-        completion_type: quizState.health <= 0 ? "eliminated" : "completed",
+        total_questions_answered: room.questions?.length ?? quizState.currentIndex + 1,
+        is_eliminated: latestHealth <= 0,
+        completion_type: latestHealth <= 0 ? "eliminated" : "completed",
       })
 
       if (error) {
@@ -319,33 +322,37 @@ export default function GamePage() {
     }
   }, [playerHealthStates, currentPlayer, saveGameCompletion, roomCode, nickname, router, safeSetState])
 
-  const handleGameEnd = useCallback(() => {
+  const handleGameEnd = useCallback(async () => {
     // Pastikan tidak berjalan dua kali dan semua data ada
     if (!isMountedRef.current || !currentPlayer || !room) return;
 
     console.log("🚀 [page.tsx] Menangani akhir permainan untuk:", currentPlayer.nickname);
 
+    // Ambil health paling update dari playerHealthStates
+    const latestHealth = playerHealthStates[currentPlayer.id]?.health ?? quizState.health;
+
+
     // Tandai agar tidak berjalan lagi
     isMountedRef.current = false;
 
     // 1. Simpan ke Supabase (tidak perlu ditunggu)
-    saveGameCompletion();
+    await saveGameCompletion();
 
     // 2. Buat objek hasil untuk disimpan ke localStorage
     const lastResult = {
       playerId: currentPlayer.id,
       nickname: currentPlayer.nickname,
-      health: quizState.health,
+      health: latestHealth <= 0 ? 0 : latestHealth, // pastikan 0 jika mati
       correct: quizState.correctAnswers,
-      total: room.questions?.length || quizState.currentIndex + 1,
-      eliminated: quizState.health <= 0,
+      total: room.questions?.length ?? quizState.currentIndex + 1,
+      eliminated: latestHealth <= 0, // pastikan true jika mati
       roomCode: roomCode,
     };
 
     // 3. Simpan ke localStorage dengan kunci yang benar
     try {
       localStorage.setItem('lastGameResult', JSON.stringify(lastResult));
-      console.log("💾 [page.tsx] Hasil disimpan ke localStorage:", lastResult);
+      console.log("💾 [page.tsx] Hasil disimpan ke localStorageeeeeeeeee:", lastResult);
     } catch (error) {
       console.error("Gagal menyimpan hasil ke localStorage:", error);
     }
@@ -359,8 +366,8 @@ export default function GamePage() {
   // Handle game completion and redirect
   useEffect(() => {
     if (gameState?.phase === 'finished' || gameState?.phase === 'completed') {
-        console.log(`🏆 [page.tsx] Permainan berakhir dengan fase: ${gameState.phase}. Mengarahkan...`);
-        handleGameEnd();
+      console.log(`🏆 [page.tsx] Permainan berakhir dengan fase: ${gameState.phase}. Mengarahkan...`);
+      handleGameEnd();
     }
   }, [gameState?.phase, roomCode, saveGameCompletion, router, room?.current_phase])
 
@@ -400,7 +407,7 @@ export default function GamePage() {
       )
     }
 
-    if (!currentPlayer) {
+    if (!currentPlayer || !currentPlayer.room_id) {
       return (
         <div className="min-h-screen bg-gray-900 flex items-center justify-center">
           <div className="text-center">
@@ -436,6 +443,21 @@ export default function GamePage() {
               gameLogic={gameLogic}
               isSoloMode={isSoloMode}
               wrongAnswers={wrongAnswers}
+              onGameComplete={(result) => {
+                setQuizState((prev) => ({
+                  ...prev,
+                  health: result.health,
+                  correctAnswers: result.correct,
+                  currentIndex: result.total - 1,
+                  isResuming: false,
+                }));
+              }}
+              onProgressUpdate={(progress) => {
+                setQuizState((prev) => ({
+                  ...prev,
+                  ...progress,
+                }));
+              }}
             />
             <AttackOverlay isVisible={isUnderAttack} />
           </>
