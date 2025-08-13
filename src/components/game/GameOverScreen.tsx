@@ -15,7 +15,7 @@ const characterGifs = [
   '/character4.gif'
 ]
 
-export default function GameOverScreen() {
+export default function GameOverScreen(lastResult: { lastResult: any }) {
   const params = useParams()
   const router = useRouter()
   const roomCode = params.roomCode as string

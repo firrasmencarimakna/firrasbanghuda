@@ -16,6 +16,7 @@ export interface TransformedPlayer {
   hasAnswered?: boolean
   status?: "alive" | "dead" | "spectating"
   character_type?: string
+  room_id: string
 }
 
 export interface TransformedGameState {
@@ -150,6 +151,7 @@ export function useGameData(roomCode: string | undefined, nickname: string | nul
         hasAnswered: false,
         status: player.is_alive ? "alive" : "dead",
         character_type: player.character_type,
+        room_id: player.room_id,
       }))
 
       // Find or create current player
@@ -190,6 +192,7 @@ export function useGameData(roomCode: string | undefined, nickname: string | nul
               hasAnswered: false,
               status: "alive",
               character_type: newPlayer.character_type,
+              room_id: newPlayer.room_id,
             }
             transformedPlayers.push(transformedCurrentPlayer)
           }
