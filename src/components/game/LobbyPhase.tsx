@@ -110,30 +110,28 @@ export default function LobbyPhase({
 }, [currentPlayer.room_id]);
 
   useEffect(() => {
-    // Jika tidak ada timestamp, pastikan countdown tidak tampil.
-    if (!room?.countdown_start) {
-      setCountdown(null);
-      return;
+  if (!room?.countdown_start) {
+    setCountdown(null);
+    return;
+  }
+
+  const start = new Date(room.countdown_start).getTime();
+  const DURATION = 10_000;
+
+  const tick = () => {
+    const now = Date.now();
+    const remainingMs = Math.max(0, DURATION - (now - start));
+    setCountdown(Math.ceil(remainingMs / 1000));
+
+    if (remainingMs <= 0) {
+      clearInterval(timer);
     }
+  };
 
-    // Hitung waktu selesai countdown (timestamp mulai + 10 detik)
-    const countdownEndTime = new Date(room.countdown_start).getTime() + 10000;
-
-    const updateCountdown = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((countdownEndTime - now) / 1000));
-      setCountdown(remaining);
-
-      if (remaining <= 0) {
-        clearInterval(timer);
-      }
-    };
-
-    const timer = setInterval(updateCountdown, 1000);
-    updateCountdown(); // Panggil sekali di awal agar tidak ada jeda 1 detik
-
-    return () => clearInterval(timer); // Cleanup
-  }, [room?.countdown_start]);
+  tick();
+  const timer = setInterval(tick, 100);
+  return () => clearInterval(timer);
+}, [room?.countdown_start]);
 
 
   // Mengambil data ruangan dari Supabase
@@ -217,62 +215,62 @@ export default function LobbyPhase({
   // }, [room?.current_phase, router]);
 
   // Menangani countdown berdasarkan countdown_start ruangan
-  useEffect(() => {
-    console.log("⏰ LobbyPhase: Memeriksa countdown_start:", room?.countdown_start);
+  // useEffect(() => {
+  //   console.log("⏰ LobbyPhase: Memeriksa countdown_start:", room?.countdown_start);
 
-    if (!room?.countdown_start) {
-      console.log("⏰ LobbyPhase: Tidak ada countdown_start, menyembunyikan countdown");
-      setCountdown(null);
-      return;
-    }
+  //   if (!room?.countdown_start) {
+  //     console.log("⏰ LobbyPhase: Tidak ada countdown_start, menyembunyikan countdown");
+  //     setCountdown(null);
+  //     return;
+  //   }
 
-    const countdownStart = new Date(room.countdown_start).getTime();
-    if (isNaN(countdownStart)) {
-      console.error("❌ LobbyPhase: countdown_start tidak valid:", room.countdown_start);
-      setCountdown(null);
-      return;
-    }
+  //   const countdownStart = new Date(room.countdown_start).getTime();
+  //   if (isNaN(countdownStart)) {
+  //     console.error("❌ LobbyPhase: countdown_start tidak valid:", room.countdown_start);
+  //     setCountdown(null);
+  //     return;
+  //   }
 
-    const countdownDuration = 10; // Durasi countdown 10 detik
-    const calculateRemaining = () => {
-      const now = new Date().getTime();
-      const elapsed = Math.floor((now - countdownStart) / 1000);
-      return Math.max(0, countdownDuration - elapsed);
-    };
+  //   const countdownDuration = 10; // Durasi countdown 10 detik
+  //   const calculateRemaining = () => {
+  //     const now = new Date().getTime();
+  //     const elapsed = Math.floor((now - countdownStart) / 1000);
+  //     return Math.max(0, countdownDuration - elapsed);
+  //   };
 
-    const initialRemaining = calculateRemaining();
-    console.log("⏰ LobbyPhase: Perhitungan awal countdown:", {
-      countdownStart,
-      now: new Date().getTime(),
-      elapsed: Math.floor((new Date().getTime() - countdownStart) / 1000),
-      remaining: initialRemaining,
-    });
+  //   const initialRemaining = calculateRemaining();
+  //   console.log("⏰ LobbyPhase: Perhitungan awal countdown:", {
+  //     countdownStart,
+  //     now: new Date().getTime(),
+  //     elapsed: Math.floor((new Date().getTime() - countdownStart) / 1000),
+  //     remaining: initialRemaining,
+  //   });
 
-    if (initialRemaining > 0) {
-      console.log("🚀 LobbyPhase: Memulai countdown dengan sisa", initialRemaining, "detik");
-      setCountdown(initialRemaining);
+  //   if (initialRemaining > 0) {
+  //     console.log("🚀 LobbyPhase: Memulai countdown dengan sisa", initialRemaining, "detik");
+  //     setCountdown(initialRemaining);
 
-      const timer = setInterval(() => {
-        const currentRemaining = calculateRemaining();
-        console.log("⏰ LobbyPhase: Tick countdown:", currentRemaining);
-        setCountdown(currentRemaining);
+  //     const timer = setInterval(() => {
+  //       const currentRemaining = calculateRemaining();
+  //       console.log("⏰ LobbyPhase: Tick countdown:", currentRemaining);
+  //       setCountdown(currentRemaining);
 
-        if (currentRemaining <= 0) {
-          console.log("⏰ LobbyPhase: Countdown selesai");
-          clearInterval(timer);
-          setCountdown(null);
-        }
-      }, 1000);
+  //       if (currentRemaining <= 0) {
+  //         console.log("⏰ LobbyPhase: Countdown selesai");
+  //         clearInterval(timer);
+  //         setCountdown(null);
+  //       }
+  //     }, 1000);
 
-      return () => {
-        console.log("⏰ LobbyPhase: Membersihkan timer countdown");
-        clearInterval(timer);
-      };
-    } else {
-      console.log("⏰ LobbyPhase: Countdown sudah selesai atau kedaluwarsa");
-      setCountdown(null);
-    }
-  }, [room?.countdown_start]);
+  //     return () => {
+  //       console.log("⏰ LobbyPhase: Membersihkan timer countdown");
+  //       clearInterval(timer);
+  //     };
+  //   } else {
+  //     console.log("⏰ LobbyPhase: Countdown sudah selesai atau kedaluwarsa");
+  //     setCountdown(null);
+  //   }
+  // }, [room?.countdown_start]);
 
   // Menghasilkan efek tetesan darah
   useEffect(() => {
@@ -432,7 +430,7 @@ export default function LobbyPhase({
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80"
+            className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm"
           >
             <div className="text-9xl font-mono font-bold text-red-500 animate-pulse">
               {countdown}
@@ -495,6 +493,7 @@ export default function LobbyPhase({
                     health: player.health || 3,
                     maxHealth: player.maxHealth || 3,
                     score: player.score || 0,
+                    character_type: selectedCharacter,
                   }}
                   isCurrentPlayer={player.id === currentPlayer.id}
                   variant="detailed"

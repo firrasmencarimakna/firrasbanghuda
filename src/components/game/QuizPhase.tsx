@@ -212,6 +212,8 @@ export default function QuizPhase({
       setPlayerSpeed(newSpeed)
       setPlayerHealth(newHealth)
 
+      console.log("player speed dan health after salah jawab:", newSpeed, " and ", newHealth)
+
       return true
     } catch (error) {
       console.error("Error di saveAnswerAndUpdateHealth:", error)
@@ -393,7 +395,19 @@ export default function QuizPhase({
           redirectToResults(0, correctAnswers, currentQuestionIndex + 1, true)
         } else if (currentQuestionIndex + 1 >= totalQuestions) {
           console.log("Semua pertanyaan dijawab, mengalihkan ke hasil")
-          const finalCorrect = isCorrect ? correctAnswers + 1 : correctAnswers
+          const finalCorrect = correctAnswers
+          supabase
+            .from("game_rooms")
+            .update({
+              current_phase: "completed",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", room.id)
+            .then(({ error }) => {
+              if (error) {
+                console.error("Gagal update fase game:", error);
+              }
+            });
           redirectToResults(playerHealth, finalCorrect, totalQuestions, false, finalCorrect === totalQuestions)
         } else {
           nextQuestion()
@@ -448,12 +462,12 @@ export default function QuizPhase({
 
     await saveAnswerAndUpdateHealth(selectedAnswer || "", true)
 
-    if (currentQuestionIndex + 1 >= totalQuestions) {
-      console.log("Final question answered correctly, preparing redirect")
-      setTimeout(() => {
-        redirectToResults(playerHealth, newCorrectAnswers, totalQuestions, false, newCorrectAnswers === totalQuestions)
-      }, FEEDBACK_DURATION)
-    }
+    // if (currentQuestionIndex + 1 >= totalQuestions) {
+    //   console.log("Final question answered correctly, preparing redirect")
+    //   setTimeout(() => {
+    //     redirectToResults(playerHealth, newCorrectAnswers, totalQuestions, false, newCorrectAnswers === totalQuestions)
+    //   }, FEEDBACK_DURATION)
+    // }
   }
 
   const handleWrongAnswer = async () => {
@@ -484,12 +498,12 @@ export default function QuizPhase({
       // Simpan jawaban salah
       await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, true)
 
-      if (currentQuestionIndex + 1 >= totalQuestions) {
-        console.log("Final question answered incorrectly, preparing redirect")
-        setTimeout(() => {
-          redirectToResults(newHealth <= 0 ? 0 : newHealth, correctAnswers, totalQuestions, newHealth <= 0)
-        }, FEEDBACK_DURATION)
-      }
+      // if (currentQuestionIndex + 1 >= totalQuestions) {
+      //   console.log("Final question answered incorrectly, preparing redirect")
+      //   setTimeout(() => {
+      //     redirectToResults(newHealth <= 0 ? 0 : newHealth, correctAnswers, totalQuestions, newHealth <= 0)
+      //   }, FEEDBACK_DURATION)
+      // }
     } else {
       // Penalti speed seperti biasa
       const newSpeed = Math.max(20, playerSpeed - 5)
@@ -504,12 +518,12 @@ export default function QuizPhase({
       // Simpan jawaban salah
       await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, false)
 
-      if (currentQuestionIndex + 1 >= totalQuestions) {
-        console.log("Final question answered incorrectly (speed penalty), preparing redirect")
-        setTimeout(() => {
-          redirectToResults(playerHealth, correctAnswers, totalQuestions, false)
-        }, FEEDBACK_DURATION)
-      }
+      // if (currentQuestionIndex + 1 >= totalQuestions) {
+      //   console.log("Final question answered incorrectly (speed penalty), preparing redirect")
+      //   setTimeout(() => {
+      //     redirectToResults(playerHealth, correctAnswers, totalQuestions, false)
+      //   }, FEEDBACK_DURATION)
+      // }
     }
   }
 
@@ -549,13 +563,12 @@ export default function QuizPhase({
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       <div
-        className={`absolute inset-0 transition-all duration-1000 ${
-          dangerLevel === 3
+        className={`absolute inset-0 transition-all duration-1000 ${dangerLevel === 3
             ? "bg-gradient-to-br from-red-900/40 via-black to-red-950/40"
             : dangerLevel === 2
               ? "bg-gradient-to-br from-red-950/25 via-black to-purple-950/25"
               : "bg-gradient-to-br from-red-950/15 via-black to-purple-950/15"
-        }`}
+          }`}
         style={{
           opacity: 0.3 + pulseIntensity * 0.4,
           filter: `hue-rotate(${pulseIntensity * 30}deg)`,
@@ -590,7 +603,7 @@ export default function QuizPhase({
           >
             <div className="flex items-center space-x-3">
               <AlertTriangle className="w-6 h-6 text-yellow-300 animate-bounce" />
-              <span>Kecepatan turun karena tidak menjawab dalam {inactivityCountdown} detik</span>
+              <span>Speed decreases in {inactivityCountdown}s</span>
             </div>
           </motion.div>
         )}
@@ -632,13 +645,12 @@ export default function QuizPhase({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${
-                    i < playerHealth
+                  className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${i < playerHealth
                       ? playerHealth <= 1
                         ? "bg-red-500 border-red-400 animate-pulse"
                         : "bg-green-500 border-green-400"
                       : "bg-gray-600 border-gray-500"
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -675,9 +687,8 @@ export default function QuizPhase({
                     key={index}
                     onClick={() => handleAnswerSelect(option)}
                     disabled={isAnswered || isProcessingAnswer}
-                    className={`${getAnswerButtonClass(option)} p-6 text-left justify-start font-mono text-lg border-2 transition-all duration-300 relative overflow-hidden group ${
-                      isProcessingAnswer ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
+                    className={`${getAnswerButtonClass(option)} p-6 text-left justify-start font-mono text-lg border-2 transition-all duration-300 relative overflow-hidden group ${isProcessingAnswer ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                     <div className="flex items-center space-x-3 relative z-10">

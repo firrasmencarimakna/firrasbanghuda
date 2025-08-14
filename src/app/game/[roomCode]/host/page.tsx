@@ -838,6 +838,12 @@ export default function HostGamePage() {
     )
   }
 
+  if (gameRoom?.current_phase === "completed") {
+  return (
+    <p>ini halaman hasil untuk host</p>
+  );
+}
+
   const centerX = screenWidth / 2
 
   return (

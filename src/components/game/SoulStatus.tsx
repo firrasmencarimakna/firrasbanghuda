@@ -15,6 +15,7 @@ interface Player {
   hasAnswered?: boolean
   status?: "alive" | "dead" | "spectating"
   powerUps?: string[]
+  character_type: string
 }
 
 interface SoulStatusProps {
@@ -92,6 +93,23 @@ export default function SoulStatus({
     </div>
   )
 
+  const characterOptions = [
+    { value: "robot1", name: "Hijau", gif: "/character/character.gif", alt: "Karakter Hijau" },
+    { value: "robot2", name: "Biru", gif: "/character/character1.gif", alt: "Karakter Biru" },
+    { value: "robot3", name: "Merah", gif: "/character/character2.gif", alt: "Karakter Merah" },
+    { value: "robot4", name: "Ungu", gif: "/character/character3.gif", alt: "Karakter Ungu" },
+    { value: "robot5", name: "Oranye", gif: "/character/character4.gif", alt: "Karakter Oranye" },
+    { value: "robot6", name: "Kuning", gif: "/character/character5.gif", alt: "Karakter Kuning" },
+    { value: "robot7", name: "Abu-abu", gif: "/character/character6.gif", alt: "Karakter Abu-abu" },
+    { value: "robot8", name: "Pink", gif: "/character/character7.gif", alt: "Karakter Pink" },
+    { value: "robot9", name: "Cokelat", gif: "/character/character8.gif", alt: "Karakter Cokelat" },
+    { value: "robot10", name: "Emas", gif: "/character/character9.gif", alt: "Karakter Emas" },
+  ];
+
+  const selectedCharacter = characterOptions.find(
+    (c) => c.value === player.character_type
+  );
+
   if (variant === "minimal") {
     return (
       <div className={cn("flex items-center space-x-2 group", className)}>
@@ -126,7 +144,7 @@ export default function SoulStatus({
       )}>
         <BloodDrips />
         {isLowHealth && <BloodSplatter />}
-        
+
         <div className="p-3 relative">
           {/* Blood pool effect for dead players */}
           {isDead && (
@@ -195,12 +213,12 @@ export default function SoulStatus({
   return (
     <Card className={cn(
       getCardStyle(),
-      "backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] relative overflow-hidden border-2",
+      "backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] relative overflow-hidden border-2 py-2",
       className
     )}>
       <BloodDrips count={5} />
       {(isLowHealth || isDead) && <BloodSplatter />}
-      
+
       <div className="p-4 relative">
         {/* Blood pool effect for dead players */}
         {isDead && (
@@ -252,7 +270,7 @@ export default function SoulStatus({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-red-900 font-mono font-bold tracking-wider">
-                Jiwa
+                Nyawa
               </span>
               <span className={cn(
                 "text-sm font-mono font-bold tracking-wider",
@@ -292,7 +310,17 @@ export default function SoulStatus({
                 />
               ))}
             </div>
+          <div className="flex justify-center mb-0">
+            {selectedCharacter && (
+              <img
+                src={selectedCharacter.gif}
+                alt={selectedCharacter.alt}
+                className="w-20 h-20 p-0 m-0"
+              />
+            )}
           </div>
+          </div>
+
 
           {/* Stats */}
           {/* <div className="grid grid-cols-2 gap-4 pt-2 border-t border-red-900/50">
@@ -321,7 +349,7 @@ export default function SoulStatus({
           </div> */}
 
           {/* Power-ups */}
-          {player.powerUps && player.powerUps.length > 0 && (
+          {/* {player.powerUps && player.powerUps.length > 0 && (
             <div className="pt-2 border-t border-red-900/50">
               <div className="text-xs text-red-900 font-mono font-bold mb-1 tracking-wider">
                 CURSED RELICS:
@@ -332,7 +360,7 @@ export default function SoulStatus({
                 ))}
               </div>
             </div>
-          )}
+          )} */}
         </div>
       </div>
     </Card>
