@@ -1,4 +1,3 @@
-
 "use client";
 
 // Mengimpor dependensi yang diperlukan
@@ -7,7 +6,7 @@ import { Users, Skull, Zap, Play, Ghost, Bone, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import SoulStatus from "./SoulStatus";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -80,43 +79,41 @@ export default function LobbyPhase({
   ];
 
   useEffect(() => {
-  const fetchRoom = async () => {
-    if (!currentPlayer.room_id) {
-      console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
-      return;
-    }
-
-    try {
-      console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
-      const { data, error } = await supabase
-        .from("game_rooms")
-        .select("*") // pastikan ambil semua kolom, termasuk countdown_start
-        .eq("id", currentPlayer.room_id)
-        .single();
-
-      if (error) {
-        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+    const fetchRoom = async () => {
+      if (!currentPlayer.room_id) {
+        console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
         return;
       }
 
-      console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
-      setRoom(data);
-    } catch (error) {
-      console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-    }
-  };
+      try {
+        console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
+        const { data, error } = await supabase
+          .from("game_rooms")
+          .select("*")
+          .eq("id", currentPlayer.room_id)
+          .single();
 
-  fetchRoom();
-}, [currentPlayer.room_id]);
+        if (error) {
+          console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+          return;
+        }
+
+        console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
+        setRoom(data);
+      } catch (error) {
+        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
+      }
+    };
+
+    fetchRoom();
+  }, [currentPlayer.room_id]);
 
   useEffect(() => {
-    // Jika tidak ada timestamp, pastikan countdown tidak tampil.
     if (!room?.countdown_start) {
       setCountdown(null);
       return;
     }
 
-    // Hitung waktu selesai countdown (timestamp mulai + 10 detik)
     const countdownEndTime = new Date(room.countdown_start).getTime() + 10000;
 
     const updateCountdown = () => {
@@ -130,44 +127,11 @@ export default function LobbyPhase({
     };
 
     const timer = setInterval(updateCountdown, 1000);
-    updateCountdown(); // Panggil sekali di awal agar tidak ada jeda 1 detik
+    updateCountdown();
 
-    return () => clearInterval(timer); // Cleanup
+    return () => clearInterval(timer);
   }, [room?.countdown_start]);
 
-
-  // Mengambil data ruangan dari Supabase
-  // useEffect(() => {
-  //   const fetchRoom = async () => {
-  //     if (!currentPlayer.room_id) {
-  //       console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
-  //       return;
-  //     }
-
-  //     try {
-  //       console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
-  //       const { data, error } = await supabase
-  //         .from("game_rooms")
-  //         .select("*, countdown_start")
-  //         .eq("id", currentPlayer.room_id)
-  //         .single();
-
-  //       if (error) {
-  //         console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-  //         return;
-  //       }
-
-  //       console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
-  //       setRoom(data);
-  //     } catch (error) {
-  //       console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-  //     }
-  //   };
-
-  //   fetchRoom();
-  // }, [currentPlayer.room_id]);
-
-  // Langganan real-time untuk pembaruan ruangan
   useEffect(() => {
     if (!currentPlayer.room_id) {
       console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk langganan real-time");
@@ -208,73 +172,6 @@ export default function LobbyPhase({
     };
   }, [currentPlayer.room_id]);
 
-  // Menangani transisi fase ke quiz
-  // useEffect(() => {
-  //   if (room?.current_phase === "quiz") {
-  //     console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz");
-  //     router.push(`/game/${room.id}/play`);
-  //   }
-  // }, [room?.current_phase, router]);
-
-  // Menangani countdown berdasarkan countdown_start ruangan
-  useEffect(() => {
-    console.log("⏰ LobbyPhase: Memeriksa countdown_start:", room?.countdown_start);
-
-    if (!room?.countdown_start) {
-      console.log("⏰ LobbyPhase: Tidak ada countdown_start, menyembunyikan countdown");
-      setCountdown(null);
-      return;
-    }
-
-    const countdownStart = new Date(room.countdown_start).getTime();
-    if (isNaN(countdownStart)) {
-      console.error("❌ LobbyPhase: countdown_start tidak valid:", room.countdown_start);
-      setCountdown(null);
-      return;
-    }
-
-    const countdownDuration = 10; // Durasi countdown 10 detik
-    const calculateRemaining = () => {
-      const now = new Date().getTime();
-      const elapsed = Math.floor((now - countdownStart) / 1000);
-      return Math.max(0, countdownDuration - elapsed);
-    };
-
-    const initialRemaining = calculateRemaining();
-    console.log("⏰ LobbyPhase: Perhitungan awal countdown:", {
-      countdownStart,
-      now: new Date().getTime(),
-      elapsed: Math.floor((new Date().getTime() - countdownStart) / 1000),
-      remaining: initialRemaining,
-    });
-
-    if (initialRemaining > 0) {
-      console.log("🚀 LobbyPhase: Memulai countdown dengan sisa", initialRemaining, "detik");
-      setCountdown(initialRemaining);
-
-      const timer = setInterval(() => {
-        const currentRemaining = calculateRemaining();
-        console.log("⏰ LobbyPhase: Tick countdown:", currentRemaining);
-        setCountdown(currentRemaining);
-
-        if (currentRemaining <= 0) {
-          console.log("⏰ LobbyPhase: Countdown selesai");
-          clearInterval(timer);
-          setCountdown(null);
-        }
-      }, 1000);
-
-      return () => {
-        console.log("⏰ LobbyPhase: Membersihkan timer countdown");
-        clearInterval(timer);
-      };
-    } else {
-      console.log("⏰ LobbyPhase: Countdown sudah selesai atau kedaluwarsa");
-      setCountdown(null);
-    }
-  }, [room?.countdown_start]);
-
-  // Menghasilkan efek tetesan darah
   useEffect(() => {
     const generateBlood = () => {
       const newBlood = Array.from({ length: 15 }, (_, i) => ({
@@ -294,7 +191,6 @@ export default function LobbyPhase({
     return () => clearInterval(bloodInterval);
   }, []);
 
-  // Efek flicker dan teks atmosfer
   useEffect(() => {
     const flickerInterval = setInterval(() => {
       setFlickerText((prev) => !prev);
@@ -310,12 +206,15 @@ export default function LobbyPhase({
     };
   }, []);
 
-  // Menangani pemilihan karakter
-  const handleCharacterSelect = async () => {
+  // Menangani pemilihan karakter dengan auto-save dan menutup dialog
+  const handleCharacterSelect = async (characterValue: string) => {
     try {
+      setSelectedCharacter(characterValue);
+      console.log(`✅ LobbyPhase: Memilih karakter: ${characterValue} untuk pemain ${currentPlayer.id}`);
+
       const { error } = await supabase
         .from("players")
-        .update({ character_type: selectedCharacter })
+        .update({ character_type: characterValue })
         .eq("id", currentPlayer.id);
 
       if (error) {
@@ -324,7 +223,7 @@ export default function LobbyPhase({
         return;
       }
 
-      console.log(`✅ LobbyPhase: Karakter diperbarui menjadi ${selectedCharacter} untuk pemain ${currentPlayer.id}`);
+      console.log(`✅ LobbyPhase: Karakter berhasil disimpan: ${characterValue}`);
       setIsCharacterDialogOpen(false);
     } catch (error) {
       console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error);
@@ -332,7 +231,6 @@ export default function LobbyPhase({
     }
   };
 
-  // Fungsi mulai permainan untuk host
   const handleStartGame = async () => {
     if (!currentPlayer.isHost || !gameLogic.room?.id) return;
     try {
@@ -345,7 +243,6 @@ export default function LobbyPhase({
     }
   };
 
-  // Mengurutkan pemain agar currentPlayer muncul pertama
   const sortedPlayers = [...players].sort((a, b) => {
     if (a.id === currentPlayer.id) return -1;
     if (b.id === currentPlayer.id) return 1;
@@ -363,7 +260,6 @@ export default function LobbyPhase({
     <div className="min-h-screen bg-black relative overflow-hidden select-none">
       {/* Latar belakang bernoda darah */}
       <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-black to-purple-900/5">
-        {/* Noda darah */}
         <div className="absolute inset-0 opacity-20">
           {[...Array(10)].map((_, i) => (
             <div
@@ -429,16 +325,16 @@ export default function LobbyPhase({
       </div>
 
       {countdown !== null && countdown > 0 && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="fixed inset-0 flex items-center justify-center z-50 bg-black/80"
-          >
-            <div className="text-9xl font-mono font-bold text-red-500 animate-pulse">
-              {countdown}
-            </div>
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="fixed inset-0 flex items-center justify-center z-50 bg-black/80"
+        >
+          <div className="text-9xl font-mono font-bold text-red-500 animate-pulse">
+            {countdown}
+          </div>
+        </motion.div>
+      )}
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
@@ -458,24 +354,6 @@ export default function LobbyPhase({
 
           <p className="text-red-400/80 text-xl font-mono animate-pulse tracking-wider">{atmosphereText}</p>
         </div>
-
-        {/* Tampilan Countdown */}
-        {/* {countdown !== null && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 flex flex-col items-center justify-center z-[1000] bg-black/80"
-            onClick={() => console.log("⏰ LobbyPhase: Countdown div dirender, countdown:", countdown)}
-          >
-            <div className="text-8xl md:text-9xl font-mono font-bold text-red-500 animate-pulse drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">
-              {countdown}
-            </div>
-            <div className="text-2xl md:text-3xl text-red-400 font-mono mt-4 tracking-wider">
-              PERMAINAN DIMULAI DALAM...
-            </div>
-          </motion.div>
-        )} */}
 
         {/* Grid Pemain */}
         <div className="max-w-5xl mx-auto mb-8 md:h-auto h-[calc(100vh-150px)] overflow-y-auto">
@@ -590,11 +468,8 @@ export default function LobbyPhase({
                     key={character.value}
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setSelectedCharacter(character.value);
-                      console.log(`Memilih karakter: ${character.name} (${character.value})`);
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedCharacter(character.value)}
+                    onClick={() => handleCharacterSelect(character.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCharacterSelect(character.value)}
                     className={`relative flex flex-col items-center p-3 sm:p-4 rounded-lg cursor-pointer transition-all duration-300
                       ${
                         selectedCharacter === character.value
@@ -621,21 +496,6 @@ export default function LobbyPhase({
                 ))}
               </div>
             </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsCharacterDialogOpen(false)}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg w-full sm:w-auto"
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={handleCharacterSelect}
-                className="bg-white text-black hover:bg-gray-200 rounded-lg w-full sm:w-auto"
-              >
-                Simpan
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

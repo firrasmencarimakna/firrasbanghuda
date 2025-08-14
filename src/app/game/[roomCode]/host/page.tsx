@@ -1,5 +1,3 @@
-// src/app/game/[roomCode]/host
-
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -120,7 +118,7 @@ export default function HostGamePage() {
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const attackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Inisialisasi status pemain
+  // Initialize player states
   const initializePlayerStates = useCallback((playersData: Player[], healthData: PlayerHealthState[]) => {
     console.log("Menginisialisasi status pemain:", playersData.length, "pemain");
     const newStates: { [playerId: string]: PlayerState } = {};
@@ -155,7 +153,7 @@ export default function HostGamePage() {
     setPlayerHealthStates(newHealthStates);
   }, []);
 
-  // Fungsi terpusat untuk memperbarui status pemain
+  // Centralized function to update player state
   const updatePlayerState = useCallback(
     async (playerId: string, updates: Partial<PlayerHealthState>, localUpdates: Partial<PlayerState> = {}) => {
       if (!gameRoom) {
@@ -195,7 +193,7 @@ export default function HostGamePage() {
     [gameRoom]
   );
 
-  // Menangani serangan pengejar
+  // Handle chaser attack
   const handleZombieAttack = useCallback(
     (playerId: string, newHealth: number, newSpeed: number) => {
       const playerState = playerStates[playerId];
@@ -304,7 +302,7 @@ export default function HostGamePage() {
     [playerStates, players, gameRoom, updatePlayerState, zombieState]
   );
 
-  // Menangani jawaban benar
+  // Handle correct answer
   const handleCorrectAnswer = useCallback(
     (playerId: string, newSpeed: number) => {
       const playerState = playerStates[playerId];
@@ -326,7 +324,7 @@ export default function HostGamePage() {
         {
           speed: newSpeed,
           isBeingAttacked: false,
-          countdown: resetCountdown ? 10 : playerState.countdown, // reset hanya jika speed naik
+          countdown: resetCountdown ? 10 : playerState.countdown,
         }
       );
 
@@ -350,7 +348,7 @@ export default function HostGamePage() {
     [playerStates, zombieState, updatePlayerState]
   );
 
-  // Mengelola countdown dan penalti ketidakaktifan
+  // Manage player status and inactivity penalties
   const managePlayerStatus = useCallback(() => {
     if (!gameRoom) {
       console.log("⚠️ Tidak ada gameRoom, lewati manajemen status pemain");
@@ -401,7 +399,7 @@ export default function HostGamePage() {
         if (state.speed <= 30 && !state.isBeingAttacked && state.health > 0) {
           if (!state.countdown) {
             console.log(`⏲️ Menambahkan countdown untuk ${playerId}`);
-            updatedStates[playerId] = { ...state, countdown: 10 }; // Countdown penyerangan 10 detik
+            updatedStates[playerId] = { ...state, countdown: 10 };
           } else {
             const newCountdown = state.countdown - 1;
             console.log(`⏲️ Countdown untuk ${playerId}: ${newCountdown}s`);
@@ -414,7 +412,7 @@ export default function HostGamePage() {
                 }, { countdown: undefined });
                 handleZombieAttack(playerId, state.health - 1, state.speed);
               } else {
-                updatedStates[playerId] = { ...state, countdown: 10 }; // Reset ke 10 detik jika zombie sedang menyerang
+                updatedStates[playerId] = { ...state, countdown: 10 };
               }
             } else {
               updatedStates[playerId] = { ...state, countdown: newCountdown };
@@ -449,7 +447,7 @@ export default function HostGamePage() {
     });
   }, [gameRoom, playerStates, playerHealthStates, zombieState, handleZombieAttack, updatePlayerState, players]);
 
-  // Mengambil data permainan
+  // Fetch game data
   const fetchGameData = useCallback(async () => {
     if (!roomCode) {
       console.error("Kode ruangan tidak valid atau kosong");
@@ -479,9 +477,9 @@ export default function HostGamePage() {
       setChaserType(room.chaser_type || "zombie");
 
       if (room.current_phase === "completed") {
-        console.log("Fase permainan selesai, mengalihkan ke hasil");
+        console.log("Fase permainan selesai, mengalihkan ke resultshost");
         setIsLoading(false);
-        router.push(`/game/${roomCode}/results`);
+        router.push(`/game/${roomCode}/resultshost`);
         return;
       }
 
@@ -533,9 +531,9 @@ export default function HostGamePage() {
 
       if (playersData && completionData && playersData.length === completionData.length) {
         console.log("Semua pemain selesai, memperbarui current_phase ke completed");
-        await supabase.from("game_rooms").update({ current_phase: "completed" });
+        await supabase.from("game_rooms").update({ current_phase: "completed" }).eq("id", room.id);
         setIsLoading(false);
-        router.push(`/game/${roomCode}/results`);
+        router.push(`/game/${roomCode}/resultshost`);
         return;
       }
 
@@ -550,7 +548,7 @@ export default function HostGamePage() {
     }
   }, [roomCode, initializePlayerStates, router]);
 
-  // Langganan real-time Supabase
+  // Supabase real-time subscriptions
   useEffect(() => {
     if (!gameRoom) return;
 
@@ -571,9 +569,9 @@ export default function HostGamePage() {
           setGameRoom(newRoom);
           setChaserType(newRoom.chaser_type || "zombie");
           if (newRoom.current_phase === "completed") {
-            console.log("Mengalihkan host ke halaman hasil");
+            console.log("Mengalihkan host ke halaman resultshost");
             setIsLoading(false);
-            router.push(`/game/${roomCode}/results`);
+            router.push(`/game/${roomCode}/resultshost`);
           }
         }
       )
@@ -650,10 +648,10 @@ export default function HostGamePage() {
             .select("*")
             .eq("room_id", gameRoom.id);
           if (!error && data.length === players.length) {
-            console.log("Semua pemain selesai, mengalihkan ke hasil");
+            console.log("Semua pemain selesai, mengalihkan ke resultshost");
             await supabase.from("game_rooms").update({ current_phase: "completed" }).eq("id", gameRoom.id);
             setIsLoading(false);
-            router.push(`/game/${roomCode}/results`);
+            router.push(`/game/${roomCode}/resultshost`);
           }
         }
       )
@@ -685,20 +683,20 @@ export default function HostGamePage() {
     };
   }, [gameRoom, handleCorrectAnswer, players, router, roomCode]);
 
-  // Inisialisasi data permainan
+  // Initialize game data
   useEffect(() => {
     console.log("Memulai inisialisasi halaman host untuk roomCode:", roomCode);
     fetchGameData();
   }, [roomCode, fetchGameData]);
 
-  // Interval untuk status pemain
+  // Interval for player status
   useEffect(() => {
     if (!gameRoom) return;
     const interval = setInterval(managePlayerStatus, 1000);
     return () => clearInterval(interval);
   }, [managePlayerStatus, gameRoom]);
 
-  // Memeriksa pemuatan gambar
+  // Check image loading
   useEffect(() => {
     const testAllImages = async () => {
       console.log("Memeriksa pemuatan gambar");
@@ -734,7 +732,7 @@ export default function HostGamePage() {
     });
   };
 
-  // Mengatur status klien dan ukuran layar
+  // Set client and screen size
   useEffect(() => {
     console.log("Mengatur isClient ke true");
     setIsClient(true);
@@ -744,7 +742,7 @@ export default function HostGamePage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Mengatur animasi waktu
+  // Animation time
   useEffect(() => {
     const interval = setInterval(
       () => setAnimationTime((prev) => prev + 1),
@@ -753,7 +751,7 @@ export default function HostGamePage() {
     return () => clearInterval(interval);
   }, [gameMode]);
 
-  // Memeriksa koneksi Supabase
+  // Check Supabase connection
   useEffect(() => {
     const checkConnection = () => {
       const state = supabase.getChannels()[0]?.state || "closed";
@@ -776,7 +774,6 @@ export default function HostGamePage() {
     return imageLoadStatus[character.src] ? character.src : characterGifs[0].src;
   };
 
-  // Mendapatkan karakter berdasarkan tipe
   const getCharacterByType = (type: string) => {
     return characterGifs.find((char) => char.type === type) || characterGifs[0];
   };
@@ -869,13 +866,7 @@ export default function HostGamePage() {
         chaserType={chaserType}
         players={players}
       />
-      <GameUI
-        roomCode={roomCode}
-        players={players}
-        gameMode={gameMode}
-        zombieState={zombieState}
-        playerHealthStates={playerHealthStates}
-      />
+      <GameUI roomCode={roomCode} />
 
       <AnimatePresence>
         {showCompletionPopup && completedPlayers.length > 0 && (
@@ -922,7 +913,7 @@ export default function HostGamePage() {
               <button
                 onClick={() => {
                   setShowCompletionPopup(false);
-                  router.push(`/game/${roomCode}/results`);
+                  router.push(`/game/${roomCode}/resultshost`);
                 }}
                 className="bg-red-600 hover:bg-red-500 text-white font-mono py-2 px-4 rounded"
               >
