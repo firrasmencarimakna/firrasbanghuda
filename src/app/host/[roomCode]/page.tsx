@@ -1,5 +1,4 @@
-
-"use client";
+"use client"
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -13,44 +12,44 @@ import Image from "next/image";
 import QRCode from "react-qr-code";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-const validChaserTypes = ["zombie", "monster1", "monster2", "monster3", "darknight"] as const;
-type ChaserType = typeof validChaserTypes[number];
+const validChaserTypes = ["zombie", "monster1", "monster2", "monster3", "darknight"] as const
+type ChaserType = (typeof validChaserTypes)[number]
 
 interface GameRoom {
-  quiz_id(arg0: string, quiz_id: any): { data: any; error: any; } | PromiseLike<{ data: any; error: any; }>;
-  id: string;
-  room_code: string;
-  title: string | null;
-  status: "waiting" | "playing" | "finished";
-  max_players: number;
-  duration: number | null;
-  question_count: number | null;
-  current_phase: "lobby" | "quiz" | "minigame" | "finished";
-  questions: any[] | null;
-  created_at: string;
-  updated_at: string;
-  chaser_type: ChaserType;
-  countdown_start: string | null;
+  quiz_id(arg0: string, quiz_id: any): { data: any; error: any } | PromiseLike<{ data: any; error: any }>
+  id: string
+  room_code: string
+  title: string | null
+  status: "waiting" | "playing" | "finished"
+  max_players: number
+  duration: number | null
+  question_count: number | null
+  current_phase: "lobby" | "quiz" | "minigame" | "finished"
+  questions: any[] | null
+  created_at: string
+  updated_at: string
+  chaser_type: ChaserType
+  countdown_start: string | null
 }
 
 export default function HostPage() {
-  const params = useParams();
-  const router = useRouter();
-  const roomCode = params.roomCode as string;
+  const params = useParams()
+  const router = useRouter()
+  const roomCode = params.roomCode as string
 
-  const [room, setRoom] = useState<GameRoom | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [copied, setCopied] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<"connected" | "connecting" | "disconnected">("connecting");
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [flickerText, setFlickerText] = useState(true);
-  const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([]);
-  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [room, setRoom] = useState<GameRoom | null>(null)
+  const [players, setPlayers] = useState<Player[]>([])
+  const [copied, setCopied] = useState(false)
+  const [isStarting, setIsStarting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [connectionStatus, setConnectionStatus] = useState<"connected" | "connecting" | "disconnected">("connecting")
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [flickerText, setFlickerText] = useState(true)
+  const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([])
+  const [isQrDialogOpen, setIsQrDialogOpen] = useState(false)
   // const [atmosphereText, setAtmosphereText] = useState("Dinding-dinding berbisik tentang dosa-dosamu...");
 
-  const TOTAL_QUESTIONS_AVAILABLE = 50;
+  const TOTAL_QUESTIONS_AVAILABLE = 50
 
   // const atmosphereTexts = [
   //   "Dinding-dinding berbisik tentang dosa-dosamu...",
@@ -66,29 +65,29 @@ export default function HostPage() {
   // ];
 
   const fetchRoom = useCallback(async () => {
-    if (!roomCode) return;
+    if (!roomCode) return
 
     try {
       const { data, error } = await supabase
         .from("game_rooms")
         .select("*, chaser_type, countdown_start")
         .eq("room_code", roomCode)
-        .single();
+        .single()
 
       if (error || !data) {
-        console.error("Room tidak ditemukan:", error);
-        router.push("/");
-        return;
+        console.error("Room tidak ditemukan:", error)
+        router.push("/")
+        return
       }
 
-      const fetchedChaserType = validChaserTypes.includes(data.chaser_type) ? data.chaser_type : "zombie";
-      setRoom({ ...data, chaser_type: fetchedChaserType });
-      return data;
+      const fetchedChaserType = validChaserTypes.includes(data.chaser_type) ? data.chaser_type : "zombie"
+      setRoom({ ...data, chaser_type: fetchedChaserType })
+      return data
     } catch (error) {
-      console.error("Error mengambil room:", error);
-      router.push("/");
+      console.error("Error mengambil room:", error)
+      router.push("/")
     }
-  }, [roomCode, router]);
+  }, [roomCode, router])
 
   const fetchPlayers = useCallback(async (roomId: string) => {
     try {
@@ -96,34 +95,34 @@ export default function HostPage() {
         .from("players")
         .select("*")
         .eq("room_id", roomId)
-        .order("joined_at", { ascending: true });
+        .order("joined_at", { ascending: true })
 
       if (error) {
-        console.error("Error mengambil pemain:", error);
-        return;
+        console.error("Error mengambil pemain:", error)
+        return
       }
 
-      setPlayers(data || []);
+      setPlayers(data || [])
     } catch (error) {
-      console.error("Error mengambil pemain:", error);
+      console.error("Error mengambil pemain:", error)
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     const initializeData = async () => {
-      setIsLoading(true);
-      const roomData = await fetchRoom();
+      setIsLoading(true)
+      const roomData = await fetchRoom()
       if (roomData) {
-        await fetchPlayers(roomData.id);
+        await fetchPlayers(roomData.id)
       }
-      setIsLoading(false);
-    };
+      setIsLoading(false)
+    }
 
-    initializeData();
-  }, [fetchRoom, fetchPlayers]);
+    initializeData()
+  }, [fetchRoom, fetchPlayers])
 
   useEffect(() => {
-    if (!room?.id) return;
+    if (!room?.id) return
 
     const channel = supabase
       .channel(`room_${room.id}_host`)
@@ -136,8 +135,8 @@ export default function HostPage() {
           filter: `room_id=eq.${room.id}`,
         },
         (payload) => {
-          fetchPlayers(room.id);
-        }
+          fetchPlayers(room.id)
+        },
       )
       .on(
         "postgres_changes",
@@ -148,28 +147,28 @@ export default function HostPage() {
           filter: `id=eq.${room.id}`,
         },
         (payload) => {
-          const newRoom = payload.new as GameRoom;
-          const updatedChaserType = validChaserTypes.includes(newRoom.chaser_type) ? newRoom.chaser_type : "zombie";
-          setRoom({ ...newRoom, chaser_type: updatedChaserType });
+          const newRoom = payload.new as GameRoom
+          const updatedChaserType = validChaserTypes.includes(newRoom.chaser_type) ? newRoom.chaser_type : "zombie"
+          setRoom({ ...newRoom, chaser_type: updatedChaserType })
           if (newRoom.current_phase === "quiz") {
-            router.push(`/game/${roomCode}/host`);
+            router.push(`/game/${roomCode}/host`)
           }
-        }
+        },
       )
       .subscribe((status, err) => {
         if (status === "SUBSCRIBED") {
-          setConnectionStatus("connected");
+          setConnectionStatus("connected")
         } else if (status === "CHANNEL_ERROR") {
-          setConnectionStatus("disconnected");
+          setConnectionStatus("disconnected")
         } else {
-          setConnectionStatus("connecting");
+          setConnectionStatus("connecting")
         }
-      });
+      })
 
     return () => {
-      channel.unsubscribe();
-    };
-  }, [room?.id, fetchPlayers, roomCode, router]);
+      channel.unsubscribe()
+    }
+  }, [room?.id, fetchPlayers, roomCode, router])
 
   useEffect(() => {
     const generateBlood = () => {
@@ -178,125 +177,130 @@ export default function HostPage() {
         left: Math.random() * 100,
         speed: 0.5 + Math.random() * 2,
         delay: Math.random() * 5,
-      }));
-      setBloodDrips(newBlood);
-    };
+      }))
+      setBloodDrips(newBlood)
+    }
 
-    generateBlood();
+    generateBlood()
     const bloodInterval = setInterval(() => {
-      generateBlood();
-    }, 8000);
+      generateBlood()
+    }, 8000)
 
-    return () => clearInterval(bloodInterval);
-  }, []);
+    return () => clearInterval(bloodInterval)
+  }, [])
 
   useEffect(() => {
     const flickerInterval = setInterval(
       () => {
-        setFlickerText((prev) => !prev);
+        setFlickerText((prev) => !prev)
       },
       100 + Math.random() * 150,
-    );
+    )
 
     // const textInterval = setInterval(() => {
     //   setAtmosphereText(atmosphereTexts[Math.floor(Math.random() * atmosphereTexts.length)]);
     // }, 2500);
 
     return () => {
-      clearInterval(flickerInterval);
+      clearInterval(flickerInterval)
       // clearInterval(textInterval);
-    };
-  }, []);
+    }
+  }, [])
 
   useEffect(() => {
-    if (!room?.countdown_start || countdown !== null) return;
+    if (!room?.countdown_start || countdown !== null) return
 
-    const countdownStartTime = new Date(room.countdown_start).getTime();
-    const countdownDuration = 10;
-    const now = Date.now();
-    const elapsed = Math.floor((now - countdownStartTime) / 1000);
-    const remaining = Math.max(0, countdownDuration - elapsed);
+    const countdownStartTime = new Date(room.countdown_start).getTime()
+    const countdownDuration = 10000 // 10 seconds in milliseconds
 
-    if (remaining > 0) {
-      setCountdown(remaining);
-      const timer = setInterval(() => {
-        const currentNow = Date.now();
-        const currentElapsed = Math.floor((currentNow - countdownStartTime) / 1000);
-        const currentRemaining = Math.max(0, countdownDuration - currentElapsed);
-        setCountdown(currentRemaining);
+    const updateCountdown = () => {
+      const now = Date.now()
+      const elapsed = now - countdownStartTime
+      const remaining = Math.max(0, Math.ceil((countdownDuration - elapsed) / 1000))
 
-        if (currentRemaining <= 0) {
-          clearInterval(timer);
-          setCountdown(null);
-          setIsStarting(false);
-        }
-      }, 1000);
+      console.log("⏰ HostPage: Countdown sync - elapsed:", elapsed, "remaining:", remaining)
+      setCountdown(remaining)
 
-      return () => clearInterval(timer);
-    } else {
-      setCountdown(null);
-      setIsStarting(false);
+      if (remaining <= 0) {
+        setCountdown(null)
+        setIsStarting(false)
+        return false
+      }
+      return true
     }
-  }, [room?.countdown_start]);
+
+    if (updateCountdown()) {
+      const timer = setInterval(() => {
+        if (!updateCountdown()) {
+          clearInterval(timer)
+        }
+      }, 100) // Use 100ms intervals for precise synchronization
+
+      return () => clearInterval(timer)
+    } else {
+      setCountdown(null)
+      setIsStarting(false)
+    }
+  }, [room?.countdown_start])
 
   const copyRoomCode = async () => {
-    if (typeof window === "undefined") return;
-    const joinLink = `${window.location.origin}/?code=${roomCode}`;
-    await navigator.clipboard.writeText(joinLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+    if (typeof window === "undefined") return
+    const joinLink = `${window.location.origin}/?code=${roomCode}`
+    await navigator.clipboard.writeText(joinLink)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   const startGame = async () => {
     if (!room || players.length === 0) {
-      alert("Gagal memulai game: Tidak ada ruangan atau pemain.");
-      return;
+      alert("Gagal memulai game: Tidak ada ruangan atau pemain.")
+      return
     }
 
-    setIsStarting(true);
+    setIsStarting(true)
 
     try {
-      const countdownStartTime = new Date().toISOString();
+      const countdownStartTime = new Date().toISOString()
       const { error: countdownError } = await supabase
         .from("game_rooms")
         .update({
           countdown_start: countdownStartTime,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", room.id);
+        .eq("id", room.id)
 
       if (countdownError) {
-        throw new Error(`Gagal memulai countdown: ${countdownError.message}`);
+        throw new Error(`Gagal memulai countdown: ${countdownError.message}`)
       }
 
-      setCountdown(10);
+      setCountdown(10)
       const countdownInterval = setInterval(() => {
         setCountdown((prev) => {
           if (prev === null || prev <= 1) {
-            clearInterval(countdownInterval);
-            return null;
+            clearInterval(countdownInterval)
+            return null
           }
-          return prev - 1;
-        });
-      }, 1000);
+          return prev - 1
+        })
+      }, 1000)
 
       setTimeout(async () => {
         try {
           const { data: questions, error: quizError } = await supabase
             .from("quiz_questions")
             .select("id, question_type, question_text, image_url, options, correct_answer")
-            .eq("quiz_id", room.quiz_id);
+            .eq("quiz_id", room.quiz_id)
 
           if (quizError || !questions || questions.length === 0) {
-            throw new Error(`Gagal mengambil soal: ${quizError?.message || "Bank soal kosong"}`);
+            throw new Error(`Gagal mengambil soal: ${quizError?.message || "Bank soal kosong"}`)
           }
 
-          const selectedQuestionCount = room.question_count || 20;
+          const selectedQuestionCount = room.question_count || 20
           const shuffledQuestions = questions
             .map((value) => ({ value, sort: Math.random() }))
             .sort((a, b) => a.sort - b.sort)
             .map(({ value }) => value)
-            .slice(0, Math.min(selectedQuestionCount, questions.length));
+            .slice(0, Math.min(selectedQuestionCount, questions.length))
 
           const formattedQuestions = shuffledQuestions.map((q, index) => ({
             id: q.id,
@@ -306,9 +310,9 @@ export default function HostPage() {
             image_url: q.image_url,
             options: q.options,
             correct_answer: q.correct_answer,
-          }));
+          }))
 
-          const validatedChaserType = validChaserTypes.includes(room.chaser_type) ? room.chaser_type : "zombie";
+          const validatedChaserType = validChaserTypes.includes(room.chaser_type) ? room.chaser_type : "zombie"
           const { error: roomError } = await supabase
             .from("game_rooms")
             .update({
@@ -321,10 +325,10 @@ export default function HostPage() {
               countdown_start: null,
               updated_at: new Date().toISOString(),
             })
-            .eq("id", room.id);
+            .eq("id", room.id)
 
           if (roomError) {
-            throw new Error(`Gagal memulai game: ${roomError.message}`);
+            throw new Error(`Gagal memulai game: ${roomError.message}`)
           }
 
           const { error: stateError } = await supabase.from("game_states").insert({
@@ -337,27 +341,27 @@ export default function HostPage() {
             current_question_index: 0,
             status: "playing",
             created_at: new Date().toISOString(),
-          });
+          })
 
           if (stateError) {
-            throw new Error(`Gagal membuat status permainan: ${stateError.message}`);
+            throw new Error(`Gagal membuat status permainan: ${stateError.message}`)
           }
 
-          router.push(`/game/${roomCode}/host`);
+          router.push(`/game/${roomCode}/host`)
         } catch (error) {
-          console.error("Error memulai game:", error);
-          alert("Gagal memulai game: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"));
-          setIsStarting(false);
-          setCountdown(null);
+          console.error("Error memulai game:", error)
+          alert("Gagal memulai game: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"))
+          setIsStarting(false)
+          setCountdown(null)
         }
-      }, 10000);
+      }, 10000)
     } catch (error) {
-      console.error("Error memulai countdown:", error);
-      alert("Gagal memulai countdown: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"));
-      setIsStarting(false);
-      setCountdown(null);
+      console.error("Error memulai countdown:", error)
+      alert("Gagal memulai countdown: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"))
+      setIsStarting(false)
+      setCountdown(null)
     }
-  };
+  }
 
   const characterOptions = [
     { value: "robot1", name: "Hijau", gif: "/character/character.gif", alt: "Karakter Hijau" },
@@ -370,7 +374,7 @@ export default function HostPage() {
     { value: "robot8", name: "Pink", gif: "/character/character7.gif", alt: "Karakter Pink" },
     { value: "robot9", name: "Cokelat", gif: "/character/character8.gif", alt: "Karakter Cokelat" },
     { value: "robot10", name: "Emas", gif: "/character/character9.gif", alt: "Karakter Emas" },
-  ];
+  ]
 
   if (isLoading) {
     return (
@@ -381,7 +385,7 @@ export default function HostPage() {
           className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full"
         />
       </div>
-    );
+    )
   }
 
   if (!room) {
@@ -389,7 +393,7 @@ export default function HostPage() {
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-red-400 text-xl font-mono">Room tidak ditemukan</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -441,7 +445,7 @@ export default function HostPage() {
         ))}
       </div>
 
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJzY3JhdGNoZXMiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj48cGF0aCBkPSJNMCAwLDUwMCA1MDAiIHN0cm9rZT0icmdiYSgyNTUsMCwwLDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMCAxMDBMNTAwIDYwMCIgc3Ryb2tlPSJyZ2JhKDI1NSwwLDAsMC4wMykiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0wIDIwMEw1MDAgNzAwIiBzdHJva2U9InJnYmEoMjU1LDAsMCwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3NjcmF0Y2hlcykiIG9wYWNpdHk9IjAuMyIvPjwvc3ZnPg==')] opacity-20" />
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJzY3JhdGNoZXMiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSI1MDAiIGhlaWdodD0iNTAwIj48cGF0aCBkPSJNMCAwLDUwMCA1MDAiIHN0cm9rZT0icmdiYSgyNTUsMCwwLDAuMDMpIiBzdHJva2Utd2lkdGg9IjEiLz48cGF0aCBkPSJNMCAxMDBMNTAwIDYwMCIgc3Ryb2tlPSJyZ2JhKDI1NSwwLDAsMC4wMykiIHN0cm9rZS13aWR0aD0iMSIvPjxwYXRoIGQ9Ik0wIDIwMEw1MDAgNzAwIiBzdHJva2U9InJnYmEoMjU1LDAsMCwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3NjcmF0Y2hlcykiIG9wYWNpdHk9IjAuMyIvPjwvc3ZnPg==')] opacity-20" />
 
       <div className="absolute top-0 left-0 w-64 h-64 opacity-20">
         <div className="absolute w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-red-900/70 to-transparent" />
@@ -597,16 +601,16 @@ export default function HostPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-3 md:grid-cols-3 gap-4 md:gap-6 mb-8"
+          className="grid grid-cols-3 gap-6 mb-8"
         >
           <Card className="bg-black/40 border border-red-900/50 hover:border-red-500 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-            <CardContent className="p-2 text-center">
+            <CardContent className="text-center">
               <Users className="w-6 h-6 md:w-8 md:h-8 text-red-500 mx-auto mb-2" />
               <motion.div
                 key={players.length}
                 initial={{ scale: 1.2 }}
                 animate={{ scale: 1 }}
-                className="text-2xl md:text-3xl font-bold text-red-500 mb-1 font-mono"
+                className="text-2xl md:text-xl font-bold text-red-500 mb-1 font-mono"
               >
                 {players.length}/{room.max_players}
               </motion.div>
@@ -614,18 +618,18 @@ export default function HostPage() {
             </CardContent>
           </Card>
           <Card className="bg-black/40 border border-red-900/50 hover:border-red-500 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-            <CardContent className="p-2 text-center">
+            <CardContent className="text-center">
               <Clock className="w-6 h-6 md:w-8 md:h-8 text-red-500 mx-auto mb-2" />
-              <div className="text-2xl md:text-3xl font-bold text-red-500 mb-1 font-mono">
+              <div className="text-xl font-bold text-red-500 mb-1 font-mono">
                 {Math.floor((room.duration || 600) / 60)}:{((room.duration || 600) % 60).toString().padStart(2, "0")}
               </div>
               <div className="text-red-400 text-sm font-mono">Durasi</div>
             </CardContent>
           </Card>
           <Card className="bg-black/40 border border-red-900/50 hover:border-red-500 transition-all duration-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)]">
-            <CardContent className="p-2 text-center">
+            <CardContent className="text-center">
               <Trophy className="w-6 h-6 md:w-8 md:h-8 text-red-500 mx-auto mb-2" />
-              <div className="text-2xl md:text-3xl font-bold text-red-500 mb-1 font-mono">{room.question_count || 20}</div>
+              <div className="text-xl font-bold text-red-500 mb-1 font-mono">{room.question_count || 20}</div>
               <div className="text-red-400 text-sm font-mono">Soal</div>
             </CardContent>
           </Card>
@@ -829,5 +833,5 @@ export default function HostPage() {
         }
       `}</style>
     </div>
-  );
+  )
 }

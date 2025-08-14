@@ -1,35 +1,34 @@
 // src/components/game/QuizPhase.tsx
 
-"use client";
+"use client"
 
-import { useState, useEffect, useRef } from "react";
-import { Clock, Skull, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { useRouter, useParams } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
-import ZombieFeedback from "./ZombieFeedback";
+import { useState, useEffect, useRef } from "react"
+import { Clock, Skull, Zap, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { useRouter, useParams } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { motion, AnimatePresence } from "framer-motion"
+import ZombieFeedback from "./ZombieFeedback"
 
 interface QuizPhaseProps {
-  room: any;
-  gameState: any;
-  currentPlayer: any;
-  players: any[];
-  gameLogic: any;
-  isSoloMode: boolean;
-  wrongAnswers: number;
+  room: any
+  gameState: any
+  currentPlayer: any
+  players: any[]
+  gameLogic: any
+  isSoloMode: boolean
+  wrongAnswers: number
   resumeState?: {
-    health: number;
-    correctAnswers: number;
-    currentIndex: number;
-    speed?: number;
-    isResuming: boolean;
-  };
-  onGameComplete?: (result: any) => void;
-  onProgressUpdate?: (progress: { health: number; correctAnswers: number; currentIndex: number }) => void;
-
+    health: number
+    correctAnswers: number
+    currentIndex: number
+    speed?: number
+    isResuming: boolean
+  }
+  onGameComplete?: (result: any) => void
+  onProgressUpdate?: (progress: { health: number; correctAnswers: number; currentIndex: number }) => void
 }
 
 export default function QuizPhase({
@@ -44,11 +43,11 @@ export default function QuizPhase({
   onGameComplete,
   onProgressUpdate,
 }: QuizPhaseProps) {
-  const router = useRouter();
-  const params = useParams();
-  const roomCode = params.roomCode as string;
+  const router = useRouter()
+  const params = useParams()
+  const roomCode = params.roomCode as string
 
-  const [roomInfo, setRoomInfo] = useState<{ game_start_time: string; duration: number } | null>(null);
+  const [roomInfo, setRoomInfo] = useState<{ game_start_time: string; duration: number } | null>(null)
 
   useEffect(() => {
     const fetchRoomInfo = async () => {
@@ -56,139 +55,137 @@ export default function QuizPhase({
         .from("game_rooms")
         .select("game_start_time, duration")
         .eq("id", room.id) // pastikan kamu punya `room.id`
-        .single();
+        .single()
 
       if (error) {
-        console.error("❌ Gagal fetch room info:", error.message);
+        console.error("❌ Gagal fetch room info:", error.message)
       } else {
-        setRoomInfo(data);
+        setRoomInfo(data)
       }
-    };
+    }
 
     if (room?.id) {
-      fetchRoomInfo();
+      fetchRoomInfo()
     }
-  }, [room?.id]);
+  }, [room?.id])
 
-  const [timeLeft, setTimeLeft] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0)
   useEffect(() => {
-    if (!roomInfo?.game_start_time || !roomInfo.duration) return;
+    if (!roomInfo?.game_start_time || !roomInfo.duration) return
 
-    const start = new Date(roomInfo.game_start_time).getTime();
-    const now = Date.now();
-    const elapsed = Math.floor((now - start) / 1000);
-    const remaining = Math.max(0, roomInfo.duration - elapsed);
+    const start = new Date(roomInfo.game_start_time).getTime()
+    const now = Date.now()
+    const elapsed = Math.floor((now - start) / 1000)
+    const remaining = Math.max(0, roomInfo.duration - elapsed)
 
-    setTimeLeft(remaining);
+    setTimeLeft(remaining)
 
     const interval = setInterval(() => {
-      const now = Date.now();
-      const newElapsed = Math.floor((now - start) / 1000);
-      const newRemaining = Math.max(0, roomInfo.duration - newElapsed);
-      setTimeLeft(newRemaining);
-    }, 1000);
+      const now = Date.now()
+      const newElapsed = Math.floor((now - start) / 1000)
+      const newRemaining = Math.max(0, roomInfo.duration - newElapsed)
+      setTimeLeft(newRemaining)
+    }, 1000)
 
-    return () => clearInterval(interval);
-  }, [roomInfo]);
+    return () => clearInterval(interval)
+  }, [roomInfo])
 
+  const [inactivityCountdown, setInactivityCountdown] = useState<number | null>(null)
+  const [isClient, setIsClient] = useState(false)
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
+  const [isAnswered, setIsAnswered] = useState(false)
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
 
-  const [inactivityCountdown, setInactivityCountdown] = useState<number | null>(null);
-  const [isClient, setIsClient] = useState(false);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [isAnswered, setIsAnswered] = useState(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [playerHealth, setPlayerHealth] = useState(resumeState?.health || 3)
+  const [playerSpeed, setPlayerSpeed] = useState(resumeState?.speed || 20)
+  const [correctAnswers, setCorrectAnswers] = useState(resumeState?.correctAnswers || 0)
+  const [showFeedback, setShowFeedback] = useState(false)
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
+  const [isProcessingAnswer, setIsProcessingAnswer] = useState(false)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
-  const [playerHealth, setPlayerHealth] = useState(resumeState?.health || 3);
-  const [playerSpeed, setPlayerSpeed] = useState(resumeState?.speed || 20);
-  const [correctAnswers, setCorrectAnswers] = useState(resumeState?.correctAnswers || 0);
-  const [showFeedback, setShowFeedback] = useState(false);
-  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
-  const [isProcessingAnswer, setIsProcessingAnswer] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const questions = room?.questions || []
+  const totalQuestions = questions.length
+  const currentQuestion = questions[currentQuestionIndex]
 
-  const questions = room?.questions || [];
-  const totalQuestions = questions.length;
-  const currentQuestion = questions[currentQuestionIndex];
-
-  const pulseIntensity = timeLeft <= 30 ? (31 - timeLeft) / 30 : 0;
-  const FEEDBACK_DURATION = 1000;
+  const pulseIntensity = timeLeft <= 30 ? (31 - timeLeft) / 30 : 0
+  const FEEDBACK_DURATION = 1000
 
   useEffect(() => {
     const fetchAnsweredProgress = async () => {
-      if (!room?.id || !currentPlayer?.id) return;
+      if (!room?.id || !currentPlayer?.id) return
 
       const { data, error } = await supabase
         .from("player_answers")
         .select("question_index, answer, is_correct")
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id)
-        .order("question_index", { ascending: true });
+        .order("question_index", { ascending: true })
 
       if (error) {
-        console.error("Gagal mengambil progress jawaban:", error);
-        return;
+        console.error("Gagal mengambil progress jawaban:", error)
+        return
       }
 
       if (data && data.length > 0) {
-        const lastIndex = data[data.length - 1].question_index;
-        setCurrentQuestionIndex(lastIndex + 1); // Mulai dari soal berikutnya
-        setCorrectAnswers(data.filter((d) => d.is_correct).length);
+        const lastIndex = data[data.length - 1].question_index
+        setCurrentQuestionIndex(lastIndex + 1) // Mulai dari soal berikutnya
+        setCorrectAnswers(data.filter((d) => d.is_correct).length)
       }
-    };
+    }
 
-    fetchAnsweredProgress();
-  }, [room?.id, currentPlayer?.id]);
-
+    fetchAnsweredProgress()
+  }, [room?.id, currentPlayer?.id])
 
   const getDangerLevel = () => {
-    if (playerHealth <= 1) return 3;
-    if (playerHealth <= 2) return 2;
-    return 1;
-  };
+    if (playerHealth <= 1) return 3
+    if (playerHealth <= 2) return 2
+    return 1
+  }
 
-  const dangerLevel = getDangerLevel();
+  const dangerLevel = getDangerLevel()
 
   const saveGameCompletion = async (
     finalHealth: number,
     finalCorrect: number,
     totalAnswered: number,
-    isEliminated = false
+    isEliminated = false,
   ) => {
     try {
       const { error } = await supabase.from("game_completions").insert({
         player_id: currentPlayer.id,
         room_id: room.id,
-        final_health: finalHealth || currentPlayer.health,
-        correct_answers: finalCorrect || currentPlayer.correct_answers,
-        total_questions_answered: totalAnswered || currentPlayer.current_question_index + 1,
+        final_health: finalHealth === 0 ? finalHealth : currentPlayer.health,
+        correct_answers: finalCorrect === 0 ? finalCorrect : currentPlayer.correct_answers,
+        total_questions_answered: totalAnswered === 0 ? totalAnswered : currentPlayer.current_question_index + 1,
         is_eliminated: isEliminated,
         completion_type: isEliminated ? "eliminated" : finalCorrect === totalQuestions ? "completed" : "partial",
         completed_at: new Date().toISOString(),
-      });
+      })
 
       if (error) {
-        console.error("Gagal menyimpan penyelesaian permainan:", error);
+        console.error("Gagal menyimpan penyelesaian permainan:", error)
       } else {
-        console.log("Penyelesaian permainan berhasil disimpan");
+        console.log("Penyelesaian permainan berhasil disimpan")
       }
     } catch (error) {
-      console.error("Error di saveGameCompletion:", error);
+      console.error("Error di saveGameCompletion:", error)
     }
-  };
+  }
 
   const saveAnswerAndUpdateHealth = async (answer: string, isCorrectAnswer: boolean, isHealthPenalty = false) => {
     try {
-      setIsProcessingAnswer(true);
+      setIsProcessingAnswer(true)
 
-      let newSpeed = playerSpeed;
-      let newHealth = playerHealth;
+      let newSpeed = playerSpeed
+      let newHealth = playerHealth
 
       if (isCorrectAnswer) {
-        newSpeed = Math.min(playerSpeed + 5, 100);
+        newSpeed = Math.min(playerSpeed + 5, 100)
       } else if (!isCorrectAnswer && !isHealthPenalty) {
-        newSpeed = Math.max(20, playerSpeed - 5);
+        newSpeed = Math.max(20, playerSpeed - 5)
       } else if (!isCorrectAnswer && isHealthPenalty) {
-        newHealth = playerHealth - 1;
+        newHealth = playerHealth - 1
       }
 
       // Simpan jawaban
@@ -199,11 +196,11 @@ export default function QuizPhase({
         answer: answer,
         is_correct: isCorrectAnswer,
         speed: newSpeed,
-      });
+      })
 
       if (answerError) {
-        console.error("Gagal menyimpan jawaban:", answerError);
-        return false;
+        console.error("Gagal menyimpan jawaban:", answerError)
+        return false
       }
 
       // Update speed/health di database
@@ -211,39 +208,39 @@ export default function QuizPhase({
         .from("player_health_states")
         .update({ speed: newSpeed, health: newHealth, last_answer_time: new Date().toISOString() })
         .eq("player_id", currentPlayer.id)
-        .eq("room_id", room.id);
+        .eq("room_id", room.id)
 
-      setPlayerSpeed(newSpeed);
-      setPlayerHealth(newHealth);
+      setPlayerSpeed(newSpeed)
+      setPlayerHealth(newHealth)
 
-      return true;
+      return true
     } catch (error) {
-      console.error("Error di saveAnswerAndUpdateHealth:", error);
-      return false;
+      console.error("Error di saveAnswerAndUpdateHealth:", error)
+      return false
     } finally {
-      setIsProcessingAnswer(false);
+      setIsProcessingAnswer(false)
     }
-  };
+  }
 
   const syncHealthAndSpeedFromDatabase = async () => {
     if (!room?.id || !currentPlayer?.id) {
-      console.log("⚠️ room or currentPlayer is null, skipping sync");
-      return;
+      console.log("⚠️ room or currentPlayer is null, skipping sync")
+      return
     }
     try {
       const { data, error } = await supabase.rpc("get_player_health", {
         p_player_id: currentPlayer.id,
         p_room_id: room.id,
-      });
+      })
 
       if (error) {
-        console.error("Gagal mendapatkan kesehatan pemain:", error);
-        return;
+        console.error("Gagal mendapatkan kesehatan pemain:", error)
+        return
       }
 
       if (data !== null && data !== playerHealth) {
-        console.log(`Kesehatan disinkronkan dari ${playerHealth} ke ${data}`);
-        setPlayerHealth(data);
+        console.log(`Kesehatan disinkronkan dari ${playerHealth} ke ${data}`)
+        setPlayerHealth(data)
       }
 
       const { data: speedData, error: speedError } = await supabase
@@ -251,21 +248,21 @@ export default function QuizPhase({
         .select("speed, last_answer_time")
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id)
-        .single();
+        .single()
 
       if (speedError) {
-        console.error("Gagal mendapatkan kecepatan pemain:", speedError);
-        return;
+        console.error("Gagal mendapatkan kecepatan pemain:", speedError)
+        return
       }
 
       if (speedData && speedData.speed !== playerSpeed) {
-        console.log(`Kecepatan disinkronkan dari ${playerSpeed} ke ${speedData.speed}`);
-        setPlayerSpeed(speedData.speed);
+        console.log(`Kecepatan disinkronkan dari ${playerSpeed} ke ${speedData.speed}`)
+        setPlayerSpeed(speedData.speed)
       }
     } catch (error) {
-      console.error("Error saat sinkronisasi kesehatan dan kecepatan:", error);
+      console.error("Error saat sinkronisasi kesehatan dan kecepatan:", error)
     }
-  };
+  }
 
   useEffect(() => {
     if (onProgressUpdate) {
@@ -273,16 +270,15 @@ export default function QuizPhase({
         health: playerHealth,
         correctAnswers,
         currentIndex: currentQuestionIndex,
-      });
+      })
     }
-  }, [playerHealth, correctAnswers, currentQuestionIndex]);
-
+  }, [playerHealth, correctAnswers, currentQuestionIndex])
 
   const checkInactivityPenalty = async () => {
     if (!room?.id || !currentPlayer?.id || playerHealth <= 0 || isProcessingAnswer) {
-      console.log("⚠️ Skipping inactivity penalty check: invalid room, player, eliminated, or processing answer");
-      setInactivityCountdown(null);
-      return;
+      console.log("⚠️ Skipping inactivity penalty check: invalid room, player, eliminated, or processing answer")
+      setInactivityCountdown(null)
+      return
     }
     try {
       const { data, error } = await supabase
@@ -290,65 +286,66 @@ export default function QuizPhase({
         .select("last_answer_time, speed")
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id)
-        .single();
+        .single()
 
       if (error) {
-        console.error("Gagal memeriksa ketidakaktifan:", error);
-        setInactivityCountdown(null);
-        return;
+        console.error("Gagal memeriksa ketidakaktifan:", error)
+        setInactivityCountdown(null)
+        return
       }
 
-      const lastAnswerTime = new Date(data.last_answer_time).getTime();
-      const currentTime = Date.now();
-      const timeSinceLastAnswer = (currentTime - lastAnswerTime) / 1000;
+      const lastAnswerTime = new Date(data.last_answer_time).getTime()
+      const currentTime = Date.now()
+      const timeSinceLastAnswer = (currentTime - lastAnswerTime) / 1000
 
-      console.log(`🕒 Pemeriksaan ketidakaktifan: timeSinceLastAnswer=${timeSinceLastAnswer}s, speed=${data.speed}`);
+      console.log(`🕒 Pemeriksaan ketidakaktifan: timeSinceLastAnswer=${timeSinceLastAnswer}s, speed=${data.speed}`)
 
       if (timeSinceLastAnswer >= 0 && timeSinceLastAnswer < 20 && data.speed > 20) {
-        const countdown = Math.ceil(20 - timeSinceLastAnswer);
-        console.log(`⏲️ Memulai countdown penalti: ${countdown}s`);
-        setInactivityCountdown(countdown);
+        const countdown = Math.ceil(20 - timeSinceLastAnswer)
+        console.log(`⏲️ Memulai countdown penalti: ${countdown}s`)
+        setInactivityCountdown(countdown)
       } else if (timeSinceLastAnswer >= 20 && data.speed > 20) {
-        const newSpeed = Math.max(20, data.speed - 10);
-        console.log(`⚠️ Pemain tidak aktif selama ${timeSinceLastAnswer}s, kecepatan dikurangi dari ${data.speed} ke ${newSpeed}`);
+        const newSpeed = Math.max(20, data.speed - 10)
+        console.log(
+          `⚠️ Pemain tidak aktif selama ${timeSinceLastAnswer}s, kecepatan dikurangi dari ${data.speed} ke ${newSpeed}`,
+        )
         await supabase
           .from("player_health_states")
           .update({ speed: newSpeed, last_answer_time: new Date().toISOString() })
           .eq("player_id", currentPlayer.id)
-          .eq("room_id", room.id);
-        setPlayerSpeed(newSpeed);
-        setInactivityCountdown(null);
+          .eq("room_id", room.id)
+        setPlayerSpeed(newSpeed)
+        setInactivityCountdown(null)
       } else {
         if (inactivityCountdown !== null) {
-          console.log("🔄 Menghapus countdown penalti karena pemain aktif atau kecepatan <= 10");
-          setInactivityCountdown(null);
+          console.log("🔄 Menghapus countdown penalti karena pemain aktif atau kecepatan <= 10")
+          setInactivityCountdown(null)
         }
       }
     } catch (error) {
-      console.error("Error di checkInactivityPenalty:", error);
-      setInactivityCountdown(null);
+      console.error("Error di checkInactivityPenalty:", error)
+      setInactivityCountdown(null)
     }
-  };
-
+  }
 
   const redirectToResults = async (
     health: number,
     correct: number,
     total: number,
     isEliminated = false,
-    isPerfect = false
+    isPerfect = false,
   ) => {
     console.log(
-      `Mengalihkan ke hasil: health=${health}, correct=${correct}, total=${total}, eliminated=${isEliminated}, perfect=${isPerfect}`
-    );
+      `Mengalihkan ke hasil: health=${health}, correct=${correct}, total=${total}, eliminated=${isEliminated}, perfect=${isPerfect}`,
+    )
 
     if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+      clearInterval(timerRef.current)
+      timerRef.current = null
     }
 
     // Pastikan data disimpan ke database sebelum redirect
-    await saveGameCompletion(health, correct, total, isEliminated);
+    await saveGameCompletion(health, correct, total, isEliminated)
 
     const lastResult = {
       playerId: currentPlayer.id,
@@ -359,91 +356,63 @@ export default function QuizPhase({
       total: total,
       eliminated: isEliminated,
     }
-    localStorage.setItem("lastGameResult", JSON.stringify(lastResult));
-    if (onGameComplete) onGameComplete(lastResult);
+    localStorage.setItem("lastGameResult", JSON.stringify(lastResult))
+    if (onGameComplete) onGameComplete(lastResult)
 
-    router.push(`/game/${roomCode}/results`);
-  };
-
-  useEffect(() => {
-    syncHealthAndSpeedFromDatabase();
-    const syncInterval = setInterval(syncHealthAndSpeedFromDatabase, 2000);
-    return () => clearInterval(syncInterval);
-  }, [currentPlayer.id, room.id]);
+    router.push(`/game/${roomCode}/results`)
+  }
 
   useEffect(() => {
-    const penaltyInterval = setInterval(checkInactivityPenalty, 1000);
-    return () => clearInterval(penaltyInterval);
-  }, [currentPlayer.id, room.id, playerHealth, isProcessingAnswer]);
+    syncHealthAndSpeedFromDatabase()
+    const syncInterval = setInterval(syncHealthAndSpeedFromDatabase, 2000)
+    return () => clearInterval(syncInterval)
+  }, [currentPlayer.id, room.id])
 
   useEffect(() => {
-    setIsClient(true);
-  }, []);
+    const penaltyInterval = setInterval(checkInactivityPenalty, 1000)
+    return () => clearInterval(penaltyInterval)
+  }, [currentPlayer.id, room.id, playerHealth, isProcessingAnswer])
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   useEffect(() => {
     if (playerHealth <= 0) {
-      console.log("Pemain tereliminasi, mengalihkan ke hasil");
-      setShowFeedback(false);
-      redirectToResults(0, correctAnswers, currentQuestionIndex + 1, true);
+      console.log("Pemain tereliminasi, mengalihkan ke hasil")
+      setShowFeedback(false)
+      redirectToResults(0, correctAnswers, currentQuestionIndex + 1, true)
     }
-  }, [playerHealth, correctAnswers, currentQuestionIndex]);
-
-  // useEffect(() => {
-  //   if (timerRef.current) {
-  //     clearInterval(timerRef.current);
-  //   }
-
-  //   if (timeLeft > 0 && playerHealth > 0) {
-  //     timerRef.current = setInterval(() => {
-  //       setTimeLeft((prev) => {
-  //         if (prev <= 1) {
-  //           console.log("Waktu habis, mengalihkan ke hasil");
-  //           setIsAnswered(true);
-  //           saveGameCompletion(playerHealth, correctAnswers, currentQuestionIndex, playerHealth <= 0).then(() => {
-  //             redirectToResults(playerHealth, correctAnswers, currentQuestionIndex, playerHealth <= 0);
-  //           });
-  //           return 0;
-  //         }
-  //         return prev - 1;
-  //       });
-  //     }, 1000);
-  //   }
-
-  //   return () => {
-  //     if (timerRef.current) {
-  //       clearInterval(timerRef.current);
-  //       timerRef.current = null;
-  //     }
-  //   };
-  // }, [timeLeft, playerHealth, correctAnswers, currentQuestionIndex]);
+  }, [playerHealth, correctAnswers, currentQuestionIndex])
 
   useEffect(() => {
     if (showFeedback) {
       const feedbackTimer = setTimeout(() => {
-        setShowFeedback(false);
+        setShowFeedback(false)
         if (playerHealth <= 0) {
-          console.log("Pemain tereliminasi selama feedback, mengalihkan ke hasil");
-          redirectToResults(0, correctAnswers, currentQuestionIndex + 1, true);
+          console.log("Pemain tereliminasi selama feedback, mengalihkan ke hasil")
+          redirectToResults(0, correctAnswers, currentQuestionIndex + 1, true)
         } else if (currentQuestionIndex + 1 >= totalQuestions) {
-          console.log("Semua pertanyaan dijawab, mengalihkan ke hasil");
-          redirectToResults(playerHealth, correctAnswers, totalQuestions, false, correctAnswers === totalQuestions);
+          console.log("Semua pertanyaan dijawab, mengalihkan ke hasil")
+          const finalCorrect = isCorrect ? correctAnswers + 1 : correctAnswers
+          redirectToResults(playerHealth, finalCorrect, totalQuestions, false, finalCorrect === totalQuestions)
         } else {
-          nextQuestion();
+          nextQuestion()
         }
-      }, FEEDBACK_DURATION);
-      return () => clearTimeout(feedbackTimer);
+      }, FEEDBACK_DURATION)
+      return () => clearTimeout(feedbackTimer)
     }
-  }, [showFeedback, playerHealth, correctAnswers, currentQuestionIndex]);
+  }, [showFeedback, playerHealth, correctAnswers, currentQuestionIndex, isCorrect, totalQuestions])
 
   const nextQuestion = () => {
-    setCurrentQuestionIndex(currentQuestionIndex + 1);
-    setSelectedAnswer(null);
-    setIsAnswered(false);
-    setIsCorrect(null);
-  };
+    setCurrentQuestionIndex(currentQuestionIndex + 1)
+    setSelectedAnswer(null)
+    setIsAnswered(false)
+    setIsCorrect(null)
+  }
 
   const handleAnswerSelect = async (answer: string) => {
-    if (isAnswered || !currentQuestion || isProcessingAnswer) return;
+    if (isAnswered || !currentQuestion || isProcessingAnswer) return
 
     // ❗ Cek apakah sudah pernah dijawab soal ini
     const { data: existing, error } = await supabase
@@ -452,99 +421,120 @@ export default function QuizPhase({
       .eq("player_id", currentPlayer.id)
       .eq("room_id", room.id)
       .eq("question_index", currentQuestionIndex)
-      .maybeSingle();
+      .maybeSingle()
 
     if (existing) {
-      console.log("Sudah pernah dijawab, skip");
-      return;
+      console.log("Sudah pernah dijawab, skip")
+      return
     }
 
     // lanjutkan seperti biasa
-    setSelectedAnswer(answer);
-    setIsAnswered(true);
+    setSelectedAnswer(answer)
+    setIsAnswered(true)
 
     if (answer === currentQuestion.correct_answer) {
-      await handleCorrectAnswer();
+      await handleCorrectAnswer()
     } else {
-      await handleWrongAnswer();
+      await handleWrongAnswer()
     }
-  };
-
+  }
 
   const handleCorrectAnswer = async () => {
-    if (isProcessingAnswer) return;
+    if (isProcessingAnswer) return
 
-    const newCorrectAnswers = correctAnswers + 1;
-    setCorrectAnswers(newCorrectAnswers);
-    setIsCorrect(true);
-    setShowFeedback(true);
+    const newCorrectAnswers = correctAnswers + 1
+    setCorrectAnswers(newCorrectAnswers)
+    setIsCorrect(true)
+    setShowFeedback(true)
 
-    await saveAnswerAndUpdateHealth(selectedAnswer || "", true);
-  };
+    await saveAnswerAndUpdateHealth(selectedAnswer || "", true)
+
+    if (currentQuestionIndex + 1 >= totalQuestions) {
+      console.log("Final question answered correctly, preparing redirect")
+      setTimeout(() => {
+        redirectToResults(playerHealth, newCorrectAnswers, totalQuestions, false, newCorrectAnswers === totalQuestions)
+      }, FEEDBACK_DURATION)
+    }
+  }
 
   const handleWrongAnswer = async () => {
-    if (isProcessingAnswer) return;
+    if (isProcessingAnswer) return
 
-    setIsCorrect(false);
-    setShowFeedback(true);
+    setIsCorrect(false)
+    setShowFeedback(true)
 
     // Jika speed <= 30, langsung serang zombie (kurangi nyawa)
     if (playerSpeed <= 30) {
-      const newSpeed = Math.max(20, playerSpeed - 5);
-      setPlayerHealth((prev) => prev - 1);
-      setPlayerSpeed(newSpeed);
+      const newSpeed = Math.max(20, playerSpeed - 5)
+      const newHealth = playerHealth - 1
+      setPlayerHealth(newHealth)
+      setPlayerSpeed(newSpeed)
 
       // Update ke database
       await supabase
         .from("player_health_states")
         .update({
-          health: playerHealth - 1,
+          health: newHealth,
           speed: newSpeed,
           is_being_attacked: true,
           last_answer_time: new Date().toISOString(),
         })
         .eq("player_id", currentPlayer.id)
-        .eq("room_id", room.id);
+        .eq("room_id", room.id)
 
       // Simpan jawaban salah
-      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, true);
+      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, true)
+
+      if (currentQuestionIndex + 1 >= totalQuestions) {
+        console.log("Final question answered incorrectly, preparing redirect")
+        setTimeout(() => {
+          redirectToResults(newHealth <= 0 ? 0 : newHealth, correctAnswers, totalQuestions, newHealth <= 0)
+        }, FEEDBACK_DURATION)
+      }
     } else {
       // Penalti speed seperti biasa
-      const newSpeed = Math.max(20, playerSpeed - 5);
-      setPlayerSpeed(newSpeed);
+      const newSpeed = Math.max(20, playerSpeed - 5)
+      setPlayerSpeed(newSpeed)
 
       await supabase
         .from("player_health_states")
         .update({ speed: newSpeed, last_answer_time: new Date().toISOString() })
         .eq("player_id", currentPlayer.id)
-        .eq("room_id", room.id);
+        .eq("room_id", room.id)
 
       // Simpan jawaban salah
-      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, false);
+      await saveAnswerAndUpdateHealth(selectedAnswer || "TIME_UP", false, false)
+
+      if (currentQuestionIndex + 1 >= totalQuestions) {
+        console.log("Final question answered incorrectly (speed penalty), preparing redirect")
+        setTimeout(() => {
+          redirectToResults(playerHealth, correctAnswers, totalQuestions, false)
+        }, FEEDBACK_DURATION)
+      }
     }
-  };
+  }
 
   const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`;
-  };
+    const minutes = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${minutes}:${secs < 10 ? "0" : ""}${secs}`
+  }
 
   const getAnswerButtonClass = (option: string) => {
     if (!isAnswered) {
-      return "bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-red-500 text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]";
+      return "bg-gray-800 hover:bg-gray-700 border-gray-600 hover:border-red-500 text-white hover:shadow-[0_0_15px_rgba(239,68,68,0.3)]"
     }
 
     if (option === currentQuestion?.correct_answer) {
-      return "bg-green-600 border-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]";
+      return "bg-green-600 border-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]"
     }
 
     if (option === selectedAnswer && option !== currentQuestion?.correct_answer) {
-      return "bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]";
+      return "bg-red-600 border-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]"
     }
 
-    return "bg-gray-700 border-gray-600 text-gray-400";
-  };
+    return "bg-gray-700 border-gray-600 text-gray-400"
+  }
 
   if (!currentQuestion) {
     return (
@@ -554,18 +544,19 @@ export default function QuizPhase({
           <p className="text-white font-mono text-xl">Memuat pertanyaan...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden">
       <div
-        className={`absolute inset-0 transition-all duration-1000 ${dangerLevel === 3
-          ? "bg-gradient-to-br from-red-900/40 via-black to-red-950/40"
-          : dangerLevel === 2
-            ? "bg-gradient-to-br from-red-950/25 via-black to-purple-950/25"
-            : "bg-gradient-to-br from-red-950/15 via-black to-purple-950/15"
-          }`}
+        className={`absolute inset-0 transition-all duration-1000 ${
+          dangerLevel === 3
+            ? "bg-gradient-to-br from-red-900/40 via-black to-red-950/40"
+            : dangerLevel === 2
+              ? "bg-gradient-to-br from-red-950/25 via-black to-purple-950/25"
+              : "bg-gradient-to-br from-red-950/15 via-black to-purple-950/15"
+        }`}
         style={{
           opacity: 0.3 + pulseIntensity * 0.4,
           filter: `hue-rotate(${pulseIntensity * 30}deg)`,
@@ -642,12 +633,13 @@ export default function QuizPhase({
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${i < playerHealth
-                    ? playerHealth <= 1
-                      ? "bg-red-500 border-red-400 animate-pulse"
-                      : "bg-green-500 border-green-400"
-                    : "bg-gray-600 border-gray-500"
-                    }`}
+                  className={`w-6 h-6 rounded-full border-2 transition-all duration-300 ${
+                    i < playerHealth
+                      ? playerHealth <= 1
+                        ? "bg-red-500 border-red-400 animate-pulse"
+                        : "bg-green-500 border-green-400"
+                      : "bg-gray-600 border-gray-500"
+                  }`}
                 />
               ))}
             </div>
@@ -666,7 +658,7 @@ export default function QuizPhase({
               {currentQuestion.question_type === "IMAGE" && currentQuestion.image_url && (
                 <div className="mb-4 text-center">
                   <img
-                    src={currentQuestion.image_url}
+                    src={currentQuestion.image_url || "/placeholder.svg"}
                     alt={currentQuestion.question_text}
                     className="max-w-xs max-h-48 mx-auto rounded-lg"
                   />
@@ -684,8 +676,9 @@ export default function QuizPhase({
                     key={index}
                     onClick={() => handleAnswerSelect(option)}
                     disabled={isAnswered || isProcessingAnswer}
-                    className={`${getAnswerButtonClass(option)} p-6 text-left justify-start font-mono text-lg border-2 transition-all duration-300 relative overflow-hidden group ${isProcessingAnswer ? "opacity-50 cursor-not-allowed" : ""
-                      }`}
+                    className={`${getAnswerButtonClass(option)} p-6 text-left justify-start font-mono text-lg border-2 transition-all duration-300 relative overflow-hidden group ${
+                      isProcessingAnswer ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                     <div className="flex items-center space-x-3 relative z-10">
@@ -708,8 +701,7 @@ export default function QuizPhase({
         </Card>
       </div>
 
-
       <ZombieFeedback isCorrect={isCorrect} isVisible={showFeedback} />
     </div>
-  );
+  )
 }
