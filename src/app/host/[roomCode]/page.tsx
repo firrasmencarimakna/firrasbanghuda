@@ -489,7 +489,7 @@ export default function HostPage() {
                 } drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]`}
               style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.7)" }}
             >
-              ZOMBIE RUN
+              QuizRush
             </h1>
             <HeartPulse className="w-12 h-12 text-red-500 ml-4 animate-pulse" />
           </div>
@@ -789,19 +789,6 @@ export default function HostPage() {
             <span className="absolute bottom-0 left-0 right-0 h-1 bg-red-500 animate-pulse" />
           </Button>
         </motion.div>
-
-        {players.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-            className="text-center mt-6"
-          >
-            <p className="text-red-400 text-sm md:text-base font-mono animate-pulse tracking-wider">
-              RITUAL MEMBUTUHKAN LEBIH BANYAK KORBAN...
-            </p>
-          </motion.div>
-        )}
       </div>
 
       <style jsx global>{`

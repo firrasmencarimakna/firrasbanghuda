@@ -63,7 +63,7 @@ export default function HomePage() {
         .from("game_rooms")
         .insert({
           room_code: roomCode,
-          title: "Zombie Run Game",
+          title: "QuizRush",
           quiz_id: quizId, // Store selected quiz_id
         })
         .select()
@@ -159,7 +159,7 @@ export default function HomePage() {
                 <Gamepad2 className="w-16 h-16 text-white" />
               </motion.div>
               <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                Zombie Run
+                QuizRush
               </h1>
               <motion.div
                 animate={{ rotate: -360 }}
@@ -175,7 +175,7 @@ export default function HomePage() {
               transition={{ delay: 0.5, duration: 0.8 }}
               className="text-lg md:text-2xl text-gray-400 font-light"
             >
-              Kolaborasi game dan kuis seru untuk menguji pengetahuanmu!
+              Berpikir cepat atau hadapi kejaran!
             </motion.p>
           </motion.div>
 
