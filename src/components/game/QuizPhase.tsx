@@ -305,7 +305,7 @@ export default function QuizPhase({
       console.log(`🕒 Pemeriksaan ketidakaktifan: timeSinceLastAnswer=${timeSinceLastAnswer}s, speed=${data.speed}`);
 
       if (timeSinceLastAnswer >= 0 && timeSinceLastAnswer < 20 && data.speed > 20) {
-        const countdown = Math.ceil(10 - timeSinceLastAnswer);
+        const countdown = Math.ceil(20 - timeSinceLastAnswer);
         console.log(`⏲️ Memulai countdown penalti: ${countdown}s`);
         setInactivityCountdown(countdown);
       } else if (timeSinceLastAnswer >= 20 && data.speed > 20) {
@@ -600,7 +600,7 @@ export default function QuizPhase({
           >
             <div className="flex items-center space-x-3">
               <AlertTriangle className="w-6 h-6 text-yellow-300 animate-bounce" />
-              <span>Peringatan: Tidak aktif! Penalti kecepatan dalam {inactivityCountdown}s</span>
+              <span>Kecepatan turun karena tidak menjawab dalam {inactivityCountdown} detik</span>
             </div>
           </motion.div>
         )}
