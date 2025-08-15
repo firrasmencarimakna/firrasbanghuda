@@ -11,27 +11,28 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { syncServerTime, calculateCountdown } from "@/lib/server-time"
 
 // Mendefinisikan tipe data untuk Player
 interface Player {
-  id: string;
-  nickname: string;
-  isHost?: boolean;
-  isReady?: boolean;
-  health?: number;
-  maxHealth?: number;
-  score?: number;
-  room_id?: string;
-  character_type?: string;
+  id: string
+  nickname: string
+  isHost?: boolean
+  isReady?: boolean
+  health?: number
+  maxHealth?: number
+  score?: number
+  room_id?: string
+  character_type?: string
 }
 
 // Mendefinisikan tipe data untuk props LobbyPhase
 interface LobbyPhaseProps {
-  currentPlayer: Player;
-  players: Player[];
-  gameLogic: any;
-  isSoloMode: boolean;
-  wrongAnswers?: number;
+  currentPlayer: Player
+  players: Player[]
+  gameLogic: any
+  isSoloMode: boolean
+  wrongAnswers?: number
 }
 
 // Opsi karakter yang tersedia
@@ -46,7 +47,7 @@ const characterOptions = [
   { value: "robot8", name: "Pink", gif: "/character/character7.gif", alt: "Karakter Pink" },
   { value: "robot9", name: "Cokelat", gif: "/character/character8.gif", alt: "Karakter Cokelat" },
   { value: "robot10", name: "Emas", gif: "/character/character9.gif", alt: "Karakter Emas" },
-];
+]
 
 export default function LobbyPhase({
   currentPlayer,
@@ -56,14 +57,14 @@ export default function LobbyPhase({
   wrongAnswers = 0,
 }: LobbyPhaseProps) {
   // State untuk mengelola efek UI dan data permainan
-  const [flickerText, setFlickerText] = useState(true);
-  const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([]);
-  const [atmosphereText, setAtmosphereText] = useState("Dinding-dinding berbisik tentang dosa-dosamu...");
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [room, setRoom] = useState<any>(null);
-  const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false);
-  const [selectedCharacter, setSelectedCharacter] = useState(currentPlayer.character_type || "robot1");
-  const router = useRouter();
+  const [flickerText, setFlickerText] = useState(true)
+  const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([])
+  const [atmosphereText, setAtmosphereText] = useState("Dinding-dinding berbisik tentang dosa-dosamu...")
+  const [countdown, setCountdown] = useState<number | null>(null)
+  const [room, setRoom] = useState<any>(null)
+  const [isCharacterDialogOpen, setIsCharacterDialogOpen] = useState(false)
+  const [selectedCharacter, setSelectedCharacter] = useState(currentPlayer.character_type || "robot1")
+  const router = useRouter()
 
   // Teks atmosfer untuk menciptakan suasana
   const atmosphereTexts = [
@@ -71,108 +72,87 @@ export default function LobbyPhase({
     "Darah menetes dari langit-langit...",
     "Mereka mengawasimu...",
     "Udara berbau besi dan penyesalan...",
-    "Detak jantungmu terdengar terlalu keras...",
+    "Detek jantungmu terdengar terlalu keras...",
     "Jangan menoleh ke belakang...",
     "Bayangan-bayangan lapar malam ini...",
     "Mereka hampir tiba...",
     "Kau bisa merasakannya merayap di kulitmu?",
     "Jiwamu sudah hilang...",
-  ];
+  ]
 
   useEffect(() => {
-  const fetchRoom = async () => {
-    if (!currentPlayer.room_id) {
-      console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
-      return;
-    }
+    syncServerTime()
+  }, [])
 
-    try {
-      console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
-      const { data, error } = await supabase
-        .from("game_rooms")
-        .select("*") // pastikan ambil semua kolom, termasuk countdown_start
-        .eq("id", currentPlayer.room_id)
-        .single();
-
-      if (error) {
-        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-        return;
+  useEffect(() => {
+    const fetchRoom = async () => {
+      if (!currentPlayer.room_id) {
+        console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer")
+        return
       }
 
-      console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
-      setRoom(data);
-    } catch (error) {
-      console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-    }
-  };
+      try {
+        console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id)
+        const { data, error } = await supabase
+          .from("game_rooms")
+          .select("*") // pastikan ambil semua kolom, termasuk countdown_start
+          .eq("id", currentPlayer.room_id)
+          .single()
 
-  fetchRoom();
-}, [currentPlayer.room_id]);
+        if (error) {
+          console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error)
+          return
+        }
+
+        console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data)
+        setRoom(data)
+      } catch (error) {
+        console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error)
+      }
+    }
+
+    fetchRoom()
+  }, [currentPlayer.room_id])
 
   useEffect(() => {
-  if (!room?.countdown_start) {
-    setCountdown(null);
-    return;
-  }
-
-  const start = new Date(room.countdown_start).getTime();
-  const DURATION = 10_000;
-
-  const tick = () => {
-    const now = Date.now();
-    const remainingMs = Math.max(0, DURATION - (now - start));
-    setCountdown(Math.ceil(remainingMs / 1000));
-
-    if (remainingMs <= 0) {
-      clearInterval(timer);
+    if (!room?.countdown_start) {
+      setCountdown(null)
+      return
     }
-  };
 
-  tick();
-  const timer = setInterval(tick, 100);
-  return () => clearInterval(timer);
-}, [room?.countdown_start]);
+    const updateCountdown = () => {
+      const remaining = calculateCountdown(room.countdown_start, 10000)
+      console.log("⏰ LobbyPhase: Server-synced countdown:", remaining)
+      setCountdown(remaining)
 
+      if (remaining <= 0) {
+        setCountdown(null)
+        return false
+      }
+      return true
+    }
 
-  // Mengambil data ruangan dari Supabase
-  // useEffect(() => {
-  //   const fetchRoom = async () => {
-  //     if (!currentPlayer.room_id) {
-  //       console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer");
-  //       return;
-  //     }
+    // Update immediately
+    if (updateCountdown()) {
+      // Use 100ms intervals for smooth countdown
+      const timer = setInterval(() => {
+        if (!updateCountdown()) {
+          clearInterval(timer)
+        }
+      }, 100)
 
-  //     try {
-  //       console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id);
-  //       const { data, error } = await supabase
-  //         .from("game_rooms")
-  //         .select("*, countdown_start")
-  //         .eq("id", currentPlayer.room_id)
-  //         .single();
-
-  //       if (error) {
-  //         console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-  //         return;
-  //       }
-
-  //       console.log("✅ LobbyPhase: Data ruangan berhasil diambil:", data);
-  //       setRoom(data);
-  //     } catch (error) {
-  //       console.error("❌ LobbyPhase: Gagal mengambil ruangan:", error);
-  //     }
-  //   };
-
-  //   fetchRoom();
-  // }, [currentPlayer.room_id]);
+      return () => clearInterval(timer)
+    }
+  }, [room?.countdown_start])
 
   // Langganan real-time untuk pembaruan ruangan
   useEffect(() => {
     if (!currentPlayer.room_id) {
-      console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk langganan real-time");
-      return;
+      console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk langganan real-time")
+      return
     }
 
-    console.log("🔗 LobbyPhase: Menyiapkan langganan real-time untuk room_id:", currentPlayer.room_id);
+    console.log("🔗 LobbyPhase: Menyiapkan langganan real-time untuk room_id:", currentPlayer.room_id)
 
     const channel = supabase
       .channel(`lobby_${currentPlayer.room_id}`)
@@ -185,92 +165,34 @@ export default function LobbyPhase({
           filter: `id=eq.${currentPlayer.room_id}`,
         },
         (payload) => {
-          console.log("📡 LobbyPhase: Pembaruan ruangan diterima:", payload);
-          console.log("📡 LobbyPhase: Data ruangan baru:", payload.new);
-          console.log("📡 LobbyPhase: countdown_start baru:", payload.new.countdown_start);
-          setRoom(payload.new);
-        }
+          console.log("📡 LobbyPhase: Pembaruan ruangan diterima:", payload)
+          console.log("📡 LobbyPhase: Data ruangan baru:", payload.new)
+          console.log("📡 LobbyPhase: countdown_start baru:", payload.new.countdown_start)
+          setRoom(payload.new)
+        },
       )
       .subscribe((status, err) => {
-        console.log("📡 LobbyPhase: Status langganan:", status, err ? err.message : "");
+        console.log("📡 LobbyPhase: Status langganan:", status, err ? err.message : "")
         if (status === "SUBSCRIBED") {
-          console.log("📡 LobbyPhase: Berlangganan berhasil");
+          console.log("📡 LobbyPhase: Berlangganan berhasil")
         } else if (status === "CHANNEL_ERROR") {
-          console.error("📡 LobbyPhase: Error langganan:", err?.message);
+          console.error("📡 LobbyPhase: Error langganan:", err?.message)
         }
-      });
+      })
 
     return () => {
-      console.log("🔌 LobbyPhase: Membersihkan langganan");
-      supabase.removeChannel(channel);
-    };
-  }, [currentPlayer.room_id]);
+      console.log("🔌 LobbyPhase: Membersihkan langganan")
+      supabase.removeChannel(channel)
+    }
+  }, [currentPlayer.room_id])
 
   // Menangani transisi fase ke quiz
-  // useEffect(() => {
-  //   if (room?.current_phase === "quiz") {
-  //     console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz");
-  //     router.push(`/game/${room.id}/play`);
-  //   }
-  // }, [room?.current_phase, router]);
-
-  // Menangani countdown berdasarkan countdown_start ruangan
-  // useEffect(() => {
-  //   console.log("⏰ LobbyPhase: Memeriksa countdown_start:", room?.countdown_start);
-
-  //   if (!room?.countdown_start) {
-  //     console.log("⏰ LobbyPhase: Tidak ada countdown_start, menyembunyikan countdown");
-  //     setCountdown(null);
-  //     return;
-  //   }
-
-  //   const countdownStart = new Date(room.countdown_start).getTime();
-  //   if (isNaN(countdownStart)) {
-  //     console.error("❌ LobbyPhase: countdown_start tidak valid:", room.countdown_start);
-  //     setCountdown(null);
-  //     return;
-  //   }
-
-  //   const countdownDuration = 10; // Durasi countdown 10 detik
-  //   const calculateRemaining = () => {
-  //     const now = new Date().getTime();
-  //     const elapsed = Math.floor((now - countdownStart) / 1000);
-  //     return Math.max(0, countdownDuration - elapsed);
-  //   };
-
-  //   const initialRemaining = calculateRemaining();
-  //   console.log("⏰ LobbyPhase: Perhitungan awal countdown:", {
-  //     countdownStart,
-  //     now: new Date().getTime(),
-  //     elapsed: Math.floor((new Date().getTime() - countdownStart) / 1000),
-  //     remaining: initialRemaining,
-  //   });
-
-  //   if (initialRemaining > 0) {
-  //     console.log("🚀 LobbyPhase: Memulai countdown dengan sisa", initialRemaining, "detik");
-  //     setCountdown(initialRemaining);
-
-  //     const timer = setInterval(() => {
-  //       const currentRemaining = calculateRemaining();
-  //       console.log("⏰ LobbyPhase: Tick countdown:", currentRemaining);
-  //       setCountdown(currentRemaining);
-
-  //       if (currentRemaining <= 0) {
-  //         console.log("⏰ LobbyPhase: Countdown selesai");
-  //         clearInterval(timer);
-  //         setCountdown(null);
-  //       }
-  //     }, 1000);
-
-  //     return () => {
-  //       console.log("⏰ LobbyPhase: Membersihkan timer countdown");
-  //       clearInterval(timer);
-  //     };
-  //   } else {
-  //     console.log("⏰ LobbyPhase: Countdown sudah selesai atau kedaluwarsa");
-  //     setCountdown(null);
-  //   }
-  // }, [room?.countdown_start]);
+  useEffect(() => {
+    if (room?.current_phase === "quiz") {
+      console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz")
+      router.push(`/game/${room.id}/play`)
+    }
+  }, [room?.current_phase, router])
 
   // Menghasilkan efek tetesan darah
   useEffect(() => {
@@ -280,33 +202,36 @@ export default function LobbyPhase({
         left: Math.random() * 100,
         speed: 0.5 + Math.random() * 2,
         delay: Math.random() * 5,
-      }));
-      setBloodDrips(newBlood);
-    };
+      }))
+      setBloodDrips(newBlood)
+    }
 
-    generateBlood();
+    generateBlood()
     const bloodInterval = setInterval(() => {
-      generateBlood();
-    }, 8000);
+      generateBlood()
+    }, 8000)
 
-    return () => clearInterval(bloodInterval);
-  }, []);
+    return () => clearInterval(bloodInterval)
+  }, [])
 
   // Efek flicker dan teks atmosfer
   useEffect(() => {
-    const flickerInterval = setInterval(() => {
-      setFlickerText((prev) => !prev);
-    }, 100 + Math.random() * 150);
+    const flickerInterval = setInterval(
+      () => {
+        setFlickerText((prev) => !prev)
+      },
+      100 + Math.random() * 150,
+    )
 
     const textInterval = setInterval(() => {
-      setAtmosphereText(atmosphereTexts[Math.floor(Math.random() * atmosphereTexts.length)]);
-    }, 2500);
+      setAtmosphereText(atmosphereTexts[Math.floor(Math.random() * atmosphereTexts.length)])
+    }, 2500)
 
     return () => {
-      clearInterval(flickerInterval);
-      clearInterval(textInterval);
-    };
-  }, []);
+      clearInterval(flickerInterval)
+      clearInterval(textInterval)
+    }
+  }, [])
 
   // Menangani pemilihan karakter
   const handleCharacterSelect = async () => {
@@ -314,48 +239,59 @@ export default function LobbyPhase({
       const { error } = await supabase
         .from("players")
         .update({ character_type: selectedCharacter })
-        .eq("id", currentPlayer.id);
+        .eq("id", currentPlayer.id)
 
       if (error) {
-        console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error);
-        alert("Gagal memperbarui karakter: " + error.message);
-        return;
+        console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error)
+        alert("Gagal memperbarui karakter: " + error.message)
+        return
       }
 
-      console.log(`✅ LobbyPhase: Karakter diperbarui menjadi ${selectedCharacter} untuk pemain ${currentPlayer.id}`);
-      setIsCharacterDialogOpen(false);
+      console.log(`✅ LobbyPhase: Karakter diperbarui menjadi ${selectedCharacter} untuk pemain ${currentPlayer.id}`)
+      setIsCharacterDialogOpen(false)
     } catch (error) {
-      console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error);
-      alert("Gagal memperbarui karakter: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"));
+      console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error)
+      alert("Gagal memperbarui karakter: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"))
     }
-  };
+  }
 
-  // Fungsi mulai permainan untuk host
   const handleStartGame = async () => {
-    if (!currentPlayer.isHost || !gameLogic.room?.id) return;
+    if (!currentPlayer.isHost || !gameLogic.room?.id) return
     try {
-      await supabase
-        .from("game_rooms")
-        .update({ countdown_start: new Date().toISOString() })
-        .eq("id", gameLogic.room.id);
+      // Sync server time before starting countdown
+      await syncServerTime()
+
+      // Use server RPC to set countdown_start with server time
+      const { error } = await supabase.rpc("set_countdown_start", {
+        room_id: gameLogic.room.id,
+      })
+
+      if (error) {
+        console.error("Gagal memulai countdown:", error)
+        // Fallback to client time if RPC fails
+        await supabase
+          .from("game_rooms")
+          .update({ countdown_start: new Date().toISOString() })
+          .eq("id", gameLogic.room.id)
+      }
     } catch (error) {
-      console.error("Gagal memulai countdown:", error);
+      console.error("Gagal memulai countdown:", error)
     }
-  };
+  }
 
   // Mengurutkan pemain agar currentPlayer muncul pertama
   const sortedPlayers = [...players].sort((a, b) => {
-    if (a.id === currentPlayer.id) return -1;
-    if (b.id === currentPlayer.id) return 1;
-    return 0;
-  });
+    if (a.id === currentPlayer.id) return -1
+    if (b.id === currentPlayer.id) return 1
+    return 0
+  })
 
-  console.log("🔍 LobbyPhase: Current Player:", currentPlayer);
-  console.log("🔍 LobbyPhase: Sorted Players:", sortedPlayers);
+  console.log("🔍 LobbyPhase: Current Player:", currentPlayer)
+  console.log("🔍 LobbyPhase: Sorted Players:", sortedPlayers)
   console.log("🎨 LobbyPhase: Keputusan render:", {
     countdown,
     roomCountdownStart: room?.countdown_start,
-  });
+  })
 
   return (
     <div className="min-h-screen bg-black relative overflow-hidden select-none">

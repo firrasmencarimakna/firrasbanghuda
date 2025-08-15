@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import QRCode from "react-qr-code";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { syncServerTime, calculateCountdown } from "@/lib/server-time"
 
 const validChaserTypes = ["zombie", "monster1", "monster2", "monster3", "darknight"] as const
 type ChaserType = (typeof validChaserTypes)[number]
@@ -29,7 +30,7 @@ interface GameRoom {
   created_at: string
   updated_at: string
   chaser_type: ChaserType
-  countdown_start: string | null
+  countdown_start: string 
 }
 
 export default function HostPage() {
@@ -208,17 +209,14 @@ export default function HostPage() {
   }, [])
 
   useEffect(() => {
-    if (!room?.countdown_start || countdown !== null) return
-
-    const countdownStartTime = new Date(room.countdown_start).getTime()
-    const countdownDuration = 10000 // 10 seconds in milliseconds
+    if (!room?.countdown_start) {
+      setCountdown(null)
+      return
+    }
 
     const updateCountdown = () => {
-      const now = Date.now()
-      const elapsed = now - countdownStartTime
-      const remaining = Math.max(0, Math.ceil((countdownDuration - elapsed) / 1000))
-
-      console.log("⏰ HostPage: Countdown sync - elapsed:", elapsed, "remaining:", remaining)
+      const remaining = calculateCountdown(room.countdown_start, 10000)
+      console.log("⏰ HostPage: Server-synced countdown:", remaining)
       setCountdown(remaining)
 
       if (remaining <= 0) {
@@ -229,12 +227,14 @@ export default function HostPage() {
       return true
     }
 
+    // Update immediately
     if (updateCountdown()) {
+      // Use 100ms intervals for smooth countdown
       const timer = setInterval(() => {
         if (!updateCountdown()) {
           clearInterval(timer)
         }
-      }, 100) // Use 100ms intervals for precise synchronization
+      }, 100)
 
       return () => clearInterval(timer)
     } else {
@@ -260,32 +260,37 @@ export default function HostPage() {
     setIsStarting(true)
 
     try {
-      const countdownStartTime = new Date().toISOString()
-      const { error: countdownError } = await supabase
-        .from("game_rooms")
-        .update({
-          countdown_start: countdownStartTime,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", room.id)
+      // Sync server time before starting countdown
+      await syncServerTime()
+
+      // Use server RPC to set countdown_start with server time
+      const { error: countdownError } = await supabase.rpc("set_countdown_start", {
+        room_id: room.id,
+      })
 
       if (countdownError) {
-        throw new Error(`Gagal memulai countdown: ${countdownError.message}`)
+        console.warn("RPC failed, using fallback:", countdownError)
+        // Fallback to client time if RPC fails
+        const { error: fallbackError } = await supabase
+          .from("game_rooms")
+          .update({
+            countdown_start: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", room.id)
+
+        if (fallbackError) {
+          throw new Error(`Gagal memulai countdown: ${fallbackError.message}`)
+        }
       }
 
+      // Set initial countdown display
       setCountdown(10)
-      const countdownInterval = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev === null || prev <= 1) {
-            clearInterval(countdownInterval)
-            return null
-          }
-          return prev - 1
-        })
-      }, 1000)
 
+      // Wait for countdown to complete, then start the game
       setTimeout(async () => {
         try {
+          // ... existing game start logic ...
           const { data: questions, error: quizError } = await supabase
             .from("quiz_questions")
             .select("id, question_type, question_text, image_url, options, correct_answer")
@@ -362,6 +367,10 @@ export default function HostPage() {
       setCountdown(null)
     }
   }
+
+  useEffect(() => {
+    syncServerTime()
+  }, [])
 
   const characterOptions = [
     { value: "robot1", name: "Hijau", gif: "/character/character.gif", alt: "Karakter Hijau" },
