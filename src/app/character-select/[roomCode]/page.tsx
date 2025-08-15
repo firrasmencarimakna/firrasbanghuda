@@ -318,12 +318,12 @@ export default function CharacterSelectPage() {
               } drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]`}
               style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.7)" }}
             >
-              PENGATURAN HOROR
+              PENGATURAN
             </h1>
             <HeartPulse className="w-12 h-12 text-red-500 ml-4 animate-pulse" />
           </div>
           <p className="text-red-300 font-mono max-w-2xl mx-auto text-sm md:text-base">
-            Pilih karakter pengejar dan tentukan parameter permainan yang akan membuat pemain Anda menjerit ketakutan
+            Pilih karakter pengejar dan atur permainanmu!
           </p>
         </motion.div>
 
@@ -427,7 +427,7 @@ export default function CharacterSelectPage() {
                 <h2 className="text-xl font-mono text-red-400">PILIH PENGEJAR</h2>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
                 {chaserOptions.map((chaser) => (
                   <motion.div
                     key={chaser.value}
@@ -436,6 +436,7 @@ export default function CharacterSelectPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
+                    className="m-3"
                   >
                     <div
                       role="button"
