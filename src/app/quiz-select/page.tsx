@@ -18,7 +18,7 @@ export default function QuizSelectPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [flickerText, setFlickerText] = useState(true)
   const [bloodDrips, setBloodDrips] = useState<Array<{ id: number; left: number; speed: number; delay: number }>>([])
-  const [atmosphereText, setAtmosphereText] = useState("Pilih kuis untuk memulai ritual...")
+  const [atmosphereText, setAtmosphereText] = useState("Select Quiz to start")
   const [isClient, setIsClient] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalQuizzes, setTotalQuizzes] = useState(0)
@@ -28,16 +28,10 @@ export default function QuizSelectPage() {
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const atmosphereTexts = [
-    "Dinding-dinding berbisik tentang dosa-dosamu...",
-    "Darah menetes dari langit-langit...",
-    "Mereka mengawasimu...",
-    "Udara berbau besi dan penyesalan...",
-    "Detak jantungmu terdengar terlalu keras...",
-    "Jangan menoleh ke belakang...",
-    "Bayangan-bayangan lapar malam ini...",
-    "Mereka hampir tiba...",
-    "Kau bisa merasakannya merayap di kulitmu?",
-    "Jiwamu sudah hilang...",
+    "You don't know who is behind you",
+    "Screams of fear were heard everywhere",
+    "You have to be right or you'll be caught",
+
   ]
 
   useEffect(() => {
@@ -289,7 +283,7 @@ export default function QuizSelectPage() {
               } drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]`}
               style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.7)" }}
             >
-              Pilih Kuis
+              Select Quiz
             </h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -309,7 +303,7 @@ export default function QuizSelectPage() {
               onClick={handleSearchOpen}
             >
               <Search className="h-4 w-4 mr-2" />
-              Cari Kuis
+              look for quizzes
             </Button>
           </div>
 
@@ -326,7 +320,7 @@ export default function QuizSelectPage() {
                 <div className="relative">
                   <Input
                     ref={searchInputRef}
-                    placeholder="Cari kuis (tema atau deskripsi)"
+                    placeholder="Search"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-black/70 border-red-500/50 text-red-400 placeholder:text-red-400/50 text-base font-mono h-12 rounded-xl focus:border-red-500 focus:ring-red-500/30 pr-10 backdrop-blur-sm animate-pulse-glow"
@@ -455,7 +449,7 @@ export default function QuizSelectPage() {
                       Sebelumnya
                     </Button>
                     <span className="text-red-400 font-mono text-sm self-center">
-                      Halaman {currentPage} dari {totalPages}
+                      page {currentPage} from {totalPages}
                     </span>
                     <Button
                       variant="outline"
