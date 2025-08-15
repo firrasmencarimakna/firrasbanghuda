@@ -233,17 +233,20 @@ export default function LobbyPhase({
 
   // Menangani pemilihan karakter dengan auto-save dan menutup dialog
   const handleCharacterSelect = async (characterValue: string) => {
+    const previousCharacter = selectedCharacter;
+
     try {
       setSelectedCharacter(characterValue);
       console.log(`✅ LobbyPhase: Memilih karakter: ${characterValue} untuk pemain ${currentPlayer.id}`);
 
       const { error } = await supabase
         .from("players")
-        .update({ character_type: selectedCharacter })
+        .update({ character_type: characterValue })
         .eq("id", currentPlayer.id)
 
       if (error) {
         console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error)
+        setSelectedCharacter(previousCharacter); 
         alert("Gagal memperbarui karakter: " + error.message)
         return
       }
@@ -252,6 +255,7 @@ export default function LobbyPhase({
       setIsCharacterDialogOpen(false)
     } catch (error) {
       console.error("❌ LobbyPhase: Gagal memperbarui karakter:", error)
+      setSelectedCharacter(previousCharacter);
       alert("Gagal memperbarui karakter: " + (error instanceof Error ? error.message : "Kesalahan tidak diketahui"))
     }
   }
@@ -410,7 +414,7 @@ export default function LobbyPhase({
                     health: player.health || 3,
                     maxHealth: player.maxHealth || 3,
                     score: player.score || 0,
-                    character_type: selectedCharacter,
+                    character_type: player.character_type,
                   }}
                   isCurrentPlayer={player.id === currentPlayer.id}
                   variant="detailed"

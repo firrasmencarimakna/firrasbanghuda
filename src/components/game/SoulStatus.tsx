@@ -15,7 +15,7 @@ interface Player {
   hasAnswered?: boolean
   status?: "alive" | "dead" | "spectating"
   powerUps?: string[]
-  character_type: string
+  character_type: string | undefined
 }
 
 interface SoulStatusProps {
@@ -232,23 +232,23 @@ export default function SoulStatus({
 
         <div className="relative z-10 space-y-3">
           {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              {getStatusIcon()}
+          <div className="flex items-center justify-center">
+            <div className="flex flex-col gap-2 justify-center items-center">
+              {/* {getStatusIcon()} */}
               <div>
                 <p className={cn(
-                  "font-mono text-lg font-bold tracking-wider",
+                  "font-mono text-center text-3xl font-bold tracking-wider",
                   isDead ? "text-gray-400 line-through" : "text-red-200",
                   isCurrentPlayer ? "text-white" : ""
                 )}>
                   {player.nickname}
                 </p>
-                {isCurrentPlayer && (
-                  <span className="text-xs bg-red-800 text-white px-2 py-1 rounded font-mono font-bold tracking-wider">
-                    Saya
-                  </span>
-                )}
               </div>
+                {isCurrentPlayer && (
+                  <p className="text-xs bg-red-800 text-white px-5 py-1 rounded font-mono font-bold tracking-wider w-fit">
+                    Saya
+                  </p>
+                )}
             </div>
 
             {/* Status badges */}
@@ -268,7 +268,7 @@ export default function SoulStatus({
 
           {/* Health bar */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            {/* <div className="flex items-center justify-between">
               <span className="text-sm text-red-900 font-mono font-bold tracking-wider">
                 Nyawa
               </span>
@@ -278,9 +278,9 @@ export default function SoulStatus({
               )}>
                 {player.health}/{player.maxHealth}
               </span>
-            </div>
+            </div> */}
 
-            <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden border border-red-900/50">
+            {/* <div className="w-full bg-gray-800 rounded-full h-2.5 overflow-hidden border border-red-900/50">
               <div
                 className={cn(
                   "h-full transition-all duration-500 rounded-full",
@@ -294,7 +294,7 @@ export default function SoulStatus({
                 )}
                 style={{ width: `${healthPercentage}%` }}
               />
-            </div>
+            </div> */}
 
             {/* Individual hearts */}
             <div className="flex justify-center space-x-1 pt-1">
@@ -315,7 +315,7 @@ export default function SoulStatus({
               <img
                 src={selectedCharacter.gif}
                 alt={selectedCharacter.alt}
-                className="w-20 h-20 p-0 m-0"
+                className="w-20 mt-2"
               />
             )}
           </div>
