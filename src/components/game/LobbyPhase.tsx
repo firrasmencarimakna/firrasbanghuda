@@ -186,12 +186,12 @@ export default function LobbyPhase({
   }, [currentPlayer.room_id])
 
   // Menangani transisi fase ke quiz
-  useEffect(() => {
-    if (room?.current_phase === "quiz") {
-      console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz")
-      router.push(`/game/${room.id}/play`)
-    }
-  }, [room?.current_phase, router])
+  // useEffect(() => {
+  //   if (room?.current_phase === "quiz") {
+  //     console.log("🔄 LobbyPhase: Mengalihkan ke halaman quiz")
+  //     router.push(`/game/${room.id}/play`)
+  //   }
+  // }, [room?.current_phase, router])
 
   // Menghasilkan efek tetesan darah
   useEffect(() => {
