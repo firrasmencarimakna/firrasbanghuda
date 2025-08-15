@@ -89,7 +89,6 @@ export default function LobbyPhase({
         console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer")
         return
       }
-    };
 
       try {
         console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id)
