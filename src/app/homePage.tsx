@@ -1,146 +1,262 @@
+"use client";
 
-"use client"
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Gamepad2, Users, Play, Hash, Zap, Skull, Bone } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { motion } from "framer-motion";
+import { debounce } from "lodash";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Gamepad2, Users, Play, Hash, Sparkles, Zap, Settings } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import { motion } from "framer-motion"
+// Types for TypeScript
+interface BloodDrip {
+  id: number;
+  left: number;
+  speed: number;
+  delay: number;
+  opacity: number;
+}
+
+interface FloatingIcon {
+  id: number;
+  left: number;
+  top: number;
+  fontSize: number;
+  animationDelay: number;
+  animationDuration: number;
+  isSkull: boolean;
+}
 
 export default function HomePage() {
-  const [gameCode, setGameCode] = useState("")
-  const [nickname, setNickname] = useState("")
-  const [isJoining, setIsJoining] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [isQuizDialogOpen, setIsQuizDialogOpen] = useState(false)
-  const [quizzes, setQuizzes] = useState<any[]>([])
-  const router = useRouter()
+  const [gameCode, setGameCode] = useState<string>("");
+  const [nickname, setNickname] = useState<string>("");
+  const [isJoining, setIsJoining] = useState<boolean>(false);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState<boolean>(false);
+  const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    const codeFromUrl = searchParams.get('code');
+  // Atmosphere texts
+  const atmosphereTexts = useMemo(() => ["Speed thinking or face the chase."], []);
 
+  // Blood drips with precomputed opacity
+  const bloodDrips = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        speed: 0.5 + Math.random() * 2,
+        delay: Math.random() * 5,
+        opacity: 0.7 + Math.random() * 0.3,
+      })),
+    []
+  );
+
+  // Blood spots
+  const bloodSpots = useMemo(
+    () =>
+      Array.from({ length: 5 }, (_, i) => ({
+        id: i,
+        left: i * 20 + 5,
+        top: i * 20 + 5,
+        opacity: 0.3 + (i % 4) * 0.1,
+      })),
+    []
+  );
+
+  // Floating icons
+  const floatingIcons = useMemo(
+    () =>
+      Array.from({ length: 5 }, (_, i) => ({
+        id: i,
+        left: i * 20 + 10,
+        top: i * 20 + 10,
+        fontSize: 2 + (i % 3),
+        animationDelay: i * 0.5,
+        animationDuration: 15 + (i % 5),
+        isSkull: i % 2 === 0,
+      })),
+    []
+  );
+
+  // Debounced game code handler
+  const handleGameCodeChange = useCallback(
+    debounce((value: string) => {
+      let processedCode = value.toUpperCase().slice(0, 6);
+      try {
+        if (value.includes("http") && value.includes("?code=")) {
+          const url = new URL(value);
+          const codeFromUrl = url.searchParams.get("code");
+          if (codeFromUrl) {
+            processedCode = codeFromUrl.toUpperCase().slice(0, 6);
+          }
+        }
+      } catch (error) {
+        console.warn("Invalid URL, continuing as normal.");
+      }
+      setGameCode(processedCode);
+    }, 200),
+    []
+  );
+
+  // Immediate nickname handler
+  const handleNicknameChange = useCallback(
+    (value: string) => {
+      setNickname(value.slice(0, 20));
+    },
+    []
+  );
+
+  // Handle URL code
+  useEffect(() => {
+    const codeFromUrl = searchParams.get("code");
     if (codeFromUrl) {
-      console.log(`Menemukan kode ruangan dari URL: ${codeFromUrl}`);
       setGameCode(codeFromUrl.toUpperCase());
-      window.history.replaceState(null, '', '/');
+      window.history.replaceState(null, "", "/");
     }
   }, [searchParams]);
 
+  // Set client-side flag
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
-  const generateRoomCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase()
-  }
+  // Host game
+  const handleHostGame = useCallback(() => {
+    setIsCreating(true);
+    router.push("/quiz-select");
+  }, [router]);
 
-  const fetchQuizzes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("quizzes")
-        .select("*")
-      if (error) throw error
-      setQuizzes(data || [])
-    } catch (error) {
-      console.error("Error fetching quizzes:", error)
+  // Join game
+  const handleJoinGame = useCallback(async () => {
+    if (!gameCode || !nickname) {
+      setErrorMessage("Enter game code and name!");
+      return;
     }
-  }
 
-  const handleHostGame = async () => {
-    setIsCreating(true)
-    await fetchQuizzes()
-    setIsQuizDialogOpen(true)
-    setIsCreating(false)
-  }
+    setIsJoining(true);
+  setErrorMessage(null);
 
-  const handleQuizSelect = async (quizId: string) => {
-    setIsCreating(true)
-    try {
-      const roomCode = generateRoomCode()
-      const { data, error } = await supabase
-        .from("game_rooms")
-        .insert({
-          room_code: roomCode,
-          title: "QuizRush",
-          quiz_id: quizId, // Store selected quiz_id
-        })
-        .select()
-        .single()
+  try {
+    const { data: room, error } = await supabase
+      .from("game_rooms")
+      .select("*")
+      .eq("room_code", gameCode.toUpperCase())
+      .single();
 
-      if (error) throw error
-
-      router.push(`/character-select/${roomCode}`)
-    } catch (error) {
-      console.error("Error creating game:", error)
-      alert("Gagal membuat game!")
-    } finally {
-      setIsCreating(false)
-      setIsQuizDialogOpen(false)
+    if (error || !room) {
+      setErrorMessage("Game code not found!");
+      return;
     }
-  }
 
-  const handleJoinGame = async () => {
-    if (!gameCode || !nickname) return
+    const { count } = await supabase
+      .from("players")
+      .select("*", { count: "exact" })
+      .eq("room_id", room.id);
 
-    setIsJoining(true)
-    try {
-      const { data: room, error } = await supabase
-        .from("game_rooms")
-        .select("*")
-        .eq("room_code", gameCode.toUpperCase())
-        .single()
-
-      if (error || !room) {
-        alert("Kode game tidak ditemukan!")
-        return
-      }
-
-      const { count } = await supabase.from("players").select("*", { count: "exact" }).eq("room_id", room.id)
-
-      if (count && count >= room.max_players) {
-        alert("Room sudah penuh!")
-        return
-      }
-
-      const { error: playerError } = await supabase.from("players").insert({
-        room_id: room.id,
-        nickname: nickname,
-        character_type: `robot${Math.floor(Math.random() * 4) + 1}`,
-      })
-
-      if (playerError) throw playerError
-
-      localStorage.setItem("nickname", nickname)
-      localStorage.setItem("roomCode", gameCode.toUpperCase())
-
-      router.push(`/game/${gameCode.toUpperCase()}`)
-    } catch (error) {
-      console.error("Error joining game:", error)
-      alert("Gagal bergabung ke game!")
-    } finally {
-      setIsJoining(false)
+    if (count && count >= room.max_players) {
+      setErrorMessage("Room is full!");
+      return;
     }
-  }
 
-  const handleSettingsClick = () => {
-    router.push("/questions")
+    const { error: playerError } = await supabase.from("players").insert({
+      room_id: room.id,
+      nickname,
+      character_type: `robot${Math.floor(Math.random() * 4) + 1}`,
+    });
+
+    if (playerError) throw playerError;
+
+    localStorage.setItem("nickname", nickname);
+    localStorage.setItem("roomCode", gameCode.toUpperCase());
+
+    router.push(`/game/${gameCode.toUpperCase()}`);
+  } catch (error) {
+    console.error("Error joining game:", error);
+    setErrorMessage("Failed to join game! Try again later.");
+  } finally {
+    setIsJoining(false);
   }
+}, [gameCode, nickname, router]);
+
+  // Settings navigation
+  const handleSettingsClick = useCallback(() => {
+    router.push("/questions");
+  }, [router]);
 
   return (
-    <div className="min-h-screen bg-black text-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.02)_50%,transparent_75%)]" />
+    <div className="min-h-screen bg-black relative overflow-hidden select-none">
+      <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-black to-purple-900/5">
+        {isClient && (
+          <div className="absolute inset-0 opacity-20">
+            {bloodSpots.map((spot) => (
+              <div
+                key={spot.id}
+                className="absolute w-64 h-64 bg-red-900 rounded-full mix-blend-multiply blur-xl"
+                style={{
+                  left: `${spot.left}%`,
+                  top: `${spot.top}%`,
+                  opacity: spot.opacity,
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      <div className="relative z-14 flex items-center justify-center min-h-screen p-4">
+      {isClient &&
+        bloodDrips.map((drip) => (
+          <div
+            key={drip.id}
+            className="absolute top-0 w-0.5 h-20 bg-red-600/80 animate-fall"
+            style={{
+              left: `${drip.left}%`,
+              animation: `fall ${drip.speed}s linear ${drip.delay}s infinite`,
+              opacity: drip.opacity,
+              willChange: "transform",
+            }}
+          />
+        ))}
+
+      {isClient && (
+        <div className="absolute inset-0 pointer-events-none">
+          {floatingIcons.map((icon) => (
+            <div
+              key={icon.id}
+              className="absolute text-red-900/20 animate-float"
+              style={{
+                left: `${icon.left}%`,
+                top: `${icon.top}%`,
+                fontSize: `${icon.fontSize}rem`,
+                animationDelay: `${icon.animationDelay}s`,
+                animationDuration: `${icon.animationDuration}s`,
+                willChange: "transform",
+              }}
+            >
+              {icon.isSkull ? <Skull aria-hidden="true" /> : <Bone aria-hidden="true" />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-4 left-4 text-white hover:bg-white/10"
+          className="absolute top-4 left-4 text-red-500 hover:bg-red-900/20"
           onClick={handleSettingsClick}
+          aria-label="Open settings"
         >
-          <Settings className="h-6 w-6" />
+          <Gamepad2 className="h-6 w-6 animate-pulse" />
         </Button>
 
         <div className="w-full max-w-6xl">
@@ -150,33 +266,29 @@ export default function HomePage() {
             transition={{ duration: 0.8 }}
             className="text-center mb-12"
           >
-            <div className="flex items-center justify-center mb-6">
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="mr-4"
-              >
-                <Gamepad2 className="w-16 h-16 text-white" />
-              </motion.div>
-              <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                QuizRush
-              </h1>
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 20, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                className="ml-4"
-              >
-                <Gamepad2 className="w-16 h-16 text-white" />
-              </motion.div>
-            </div>
+            <h1
+              className="text-6xl md:text-8xl font-bold font-mono tracking-wider text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]"
+              style={{ textShadow: "0 0 10px rgba(239, 68, 68, 0.7)" }}
+            >
+              QuizRush
+            </h1>
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.8 }}
-              className="text-lg md:text-2xl text-gray-400 font-light"
+              className="text-red-400/80 text-lg md:text-2xl font-mono tracking-wider"
             >
-              Berpikir cepat atau hadapi kejaran!
+              {atmosphereTexts[0]}
             </motion.p>
+            {errorMessage && (
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-red-600 text-lg font-mono mt-4"
+              >
+                {errorMessage}
+              </motion.p>
+            )}
           </motion.div>
 
           <div className="grid lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -187,81 +299,68 @@ export default function HomePage() {
               whileHover={{ scale: 1.02 }}
               className="group"
             >
-              <Card className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 h-full">
+              <Card className="bg-black/40 border-red-900/50 hover:border-red-500 transition-all duration-300 h-full shadow-[0_0_15px_rgba(239,68,68,0.3)]">
                 <CardHeader className="text-center pb-6">
                   <motion.div
-                    className="w-20 h-20 bg-gradient-to-br from-gray-800 to-black border-2 border-white rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-2xl group-hover:shadow-white/20 transition-all duration-300"
+                    className="w-20 h-20 bg-gradient-to-br from-red-900 to-black border-2 border-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-[0_0_15px_rgba(239,68,68,0.7)] transition-all duration-300"
                     whileHover={{ rotate: -5 }}
                   >
-                    <Hash className="w-10 h-10 text-white" />
+                    <Hash className="w-10 h-10 text-red-400" aria-hidden="true" />
                   </motion.div>
-                  <CardTitle className="text-3xl font-bold text-white mb-2">Join Game</CardTitle>
-                  <CardDescription className="text-gray-400 text-lg">
-                    Ayo gabung seru-seruan!
+                  <CardTitle className="text-3xl font-bold text-red-400 font-mono mb-2">
+                    Join Game
+                  </CardTitle>
+                  <CardDescription className="text-red-400/80 text-lg font-mono">
+                    Enter the room code below to play.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 pt-0">
                   <div className="space-y-4">
                     <div>
                       <Input
-                        placeholder="Masukkan kode game"
+                        placeholder="Enter the room code"
                         value={gameCode}
-                        onChange={(e) => {
-                          let value = e.target.value;
-
-                          try {
-                            if (value.includes('http') && value.includes('?code=')) {
-                              const url = new URL(value);
-                              const codeFromUrl = url.searchParams.get('code');
-
-                              if (codeFromUrl) {
-                                value = codeFromUrl;
-                              }
-                            }
-                          } catch (error) {
-                            console.warn("Bukan URL yang valid, melanjutkan seperti biasa.");
-                          }
-
-                          const processedCode = value.toUpperCase().slice(0, 6);
-                          setGameCode(processedCode);
-                        }}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 text-center text-xl font-mono h-12 rounded-xl focus:border-white/40 focus:ring-white/20"
-                      // maxLength={6}
+                        onChange={(e) => handleGameCodeChange(e.target.value)}
+                        className="bg-black/50 border-red-500/50 text-red-400 placeholder:text-red-400/50 text-center text-xl font-mono h-12 rounded-xl focus:border-red-500 focus:ring-red-500/30"
+                        aria-label="Game code"
                       />
                     </div>
                     <div>
                       <Input
-                        placeholder="Nama kamu"
+                        placeholder="Your Name"
                         value={nickname}
-                        onChange={(e) => setNickname(e.target.value)}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 text-center text-xl font-mono h-12 rounded-xl focus:border-white/40 focus:ring-white/20"
+                        onChange={(e) => handleNicknameChange(e.target.value)}
+                        className="bg-black/50 border-red-500/50 text-red-400 placeholder:text-red-400/50 text-center text-xl font-mono h-12 rounded-xl focus:border-red-500 focus:ring-red-500/30"
                         maxLength={20}
+                        aria-label="Nickname"
                       />
                     </div>
                   </div>
                   <Button
                     onClick={handleJoinGame}
                     disabled={!gameCode || !nickname || isJoining}
-                    className="w-full bg-black border-2 border-white text-white hover:bg-white hover:text-black font-bold py-4 text-lg rounded-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="w-full bg-gradient-to-r from-red-900 to-red-700 hover:from-red-800 hover:to-red-600 text-white font-mono text-lg py-4 rounded-xl border-2 border-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:shadow-[0_0_20px_rgba(239,68,68,0.7)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed group"
+                    aria-label={isJoining ? "Joining..." : "Join the game"}
                   >
-                    {isJoining ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        className="w-5 h-5 mr-2"
-                      >
-                        <Zap className="w-5 h-5" />
-                      </motion.div>
-                    ) : (
-                      <Hash className="w-5 h-5 mr-2" />
-                    )}
-                    {isJoining ? "Bergabung..." : "Bergabung ke Game"}
+                    <span className="relative z-10 flex items-center">
+                      {isJoining ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                          className="w-5 h-5 mr-2"
+                        >
+                          <Zap className="w-5 h-5" aria-hidden="true" />
+                        </motion.div>
+                      ) : (
+                        <Hash className="w-5 h-5 mr-2" aria-hidden="true" />
+                      )}
+                      {isJoining ? "Joining..." : "Join"}
+                    </span>
                   </Button>
                 </CardContent>
               </Card>
             </motion.div>
 
-            {/* Host Game Card */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
@@ -269,81 +368,65 @@ export default function HomePage() {
               whileHover={{ scale: 1.02 }}
               className="group"
             >
-              <Card className="bg-white/5 backdrop-blur-xl border border-white/10 hover:border-white/20 transition-all duration-300 h-full">
+              <Card className="bg-black/40 border-red-900/50 hover:border-red-500 transition-all duration-300 h-full shadow-[0_0_15px_rgba(239,68,68,0.3)]">
                 <CardHeader className="text-center pb-6">
                   <motion.div
-                    className="w-20 h-20 bg-gradient-to-br from-white to-gray-300 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-2xl group-hover:shadow-white/20 transition-all duration-300"
+                    className="w-20 h-20 bg-gradient-to-br from-red-900 to-black border-2 border-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-[0_0_15px_rgba(239,68,68,0.7)] transition-all duration-300"
                     whileHover={{ rotate: 5 }}
                   >
-                    <Users className="w-10 h-10 text-black" />
+                    <Users className="w-10 h-10 text-red-400" aria-hidden="true" />
                   </motion.div>
-                  <CardTitle className="text-3xl font-bold text-white mb-2">Host Game</CardTitle>
-                  <CardDescription className="text-gray-400 text-lg">
-                    Buat ruangan baru dan undang temanmu untuk main bareng.
+                  <CardTitle className="text-3xl font-bold text-red-400 font-mono mb-2">
+                    Host Game
+                  </CardTitle>
+                  <CardDescription className="text-red-400/80 text-lg font-mono">
+                    Create a new room to play
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-0">
                   <Button
                     onClick={handleHostGame}
                     disabled={isCreating}
-                    className="w-full bg-white text-black hover:bg-gray-200 font-bold py-4 text-lg rounded-xl transition-all duration-300 group-hover:shadow-lg disabled:opacity-50 cursor-pointer"
+                    className="w-full bg-gradient-to-r from-red-900 to-red-700 hover:from-red-800 hover:to-red-600 text-white font-mono text-lg py-4 rounded-xl border-2 border-red-700 shadow-[0_0_15px_rgba(239,68,68,0.5)] hover:shadow-[0_0_20px_rgba(239,68,68,0.7)] transition-all duration-300 group"
+                    aria-label={isCreating ? "Creating room..." : "Create Room"}
                   >
-                    {isCreating ? (
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                        className="w-5 h-5 mr-2"
-                      >
-                        <Zap className="w-5 h-5" />
-                      </motion.div>
-                    ) : (
-                      <Play className="w-5 h-5 mr-2" />
-                    )}
-                    {isCreating ? "Membuat Game..." : "Buat Game Baru"}
+                    <span className="relative z-10 flex items-center">
+                      {isCreating ? (
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                          className="w-5 h-5 mr-2"
+                        >
+                          <Zap className="w-5 h-5" aria-hidden="true" />
+                        </motion.div>
+                      ) : (
+                        <Play className="w-5 h-5 mr-2" aria-hidden="true" />
+                      )}
+                      {isCreating ? "Creating Room..." : "Create Room"}
+                    </span>
                   </Button>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.2, duration: 0.8 }}
-            className="text-center mt-16"
-          >
-          </motion.div>
         </div>
       </div>
 
-      <Dialog open={isQuizDialogOpen} onOpenChange={setIsQuizDialogOpen}>
-        <DialogContent className="bg-black/95 text-white border-red-500/50 max-w-4xl rounded-xl p-6 shadow-[0_0_15px_rgba(255,0,0,0.5)] max-h-[80vh] overflow-y-auto custom-scrollbar">
-          <DialogHeader>
-            <DialogTitle className="text-3xl font-bold text-red-400 font-mono tracking-wider">
-              Pilih Kuis
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {quizzes.map((quiz) => (
-              <Card
-                key={quiz.id}
-                className="bg-black/40 border-red-500/20 hover:border-red-500 cursor-pointer"
-                onClick={() => handleQuizSelect(quiz.id)}
-              >
-                <CardHeader>
-                  <CardTitle className="text-red-400 font-mono">{quiz.theme}</CardTitle>
-                  <CardDescription className="text-red-400/80">{quiz.description || "Kuis seru untuk dimainkan!"}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-red-400 text-sm font-mono">Durasi: {quiz.duration} menit</div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <style jsx global>{`
+        @keyframes fall {
+          to {
+            transform: translateY(100vh);
+          }
+        }
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(180deg);
+          }
+        }
         .custom-scrollbar::-webkit-scrollbar {
           width: 8px;
         }
@@ -357,5 +440,5 @@ export default function HomePage() {
         }
       `}</style>
     </div>
-  )
+  );
 }

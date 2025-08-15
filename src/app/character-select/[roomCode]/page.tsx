@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Skull, Bone, HeartPulse, Ghost, Zap, Clock, BookOpen } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { motion, AnimatePresence } from "framer-motion";
@@ -69,7 +70,7 @@ export default function CharacterSelectPage() {
 
   const [room, setRoom] = useState<GameRoom | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [gameDuration, setGameDuration] = useState<string>("600");
+  const [gameDuration, setGameDuration] = useState<string>("10"); // Changed default to minutes
   const [questionCount, setQuestionCount] = useState<string>("20");
   const [chaserType, setChaserType] = useState<ChaserType>("zombie");
   const [flickerText, setFlickerText] = useState(true);
@@ -107,7 +108,7 @@ export default function CharacterSelectPage() {
 
         const fetchedChaserType = validChaserTypes.includes(data.chaser_type) ? data.chaser_type : "zombie";
         setRoom({ ...data, chaser_type: fetchedChaserType });
-        setGameDuration(data.duration?.toString() || "600");
+        setGameDuration((data.duration ? data.duration / 60 : 10).toString()); // Convert seconds to minutes
         setQuestionCount(data.question_count?.toString() || "20");
         setChaserType(fetchedChaserType);
         setIsLoading(false);
@@ -166,11 +167,12 @@ export default function CharacterSelectPage() {
     if (!room) return;
 
     const validatedChaserType = validChaserTypes.includes(chaserType) ? chaserType : "zombie";
+    const durationInSeconds = parseInt(gameDuration) * 60; // Convert minutes to seconds
     try {
       const { error } = await supabase
         .from("game_rooms")
         .update({
-          duration: parseInt(gameDuration),
+          duration: durationInSeconds,
           question_count: parseInt(questionCount),
           chaser_type: validatedChaserType,
           updated_at: new Date().toISOString(),
@@ -194,6 +196,14 @@ export default function CharacterSelectPage() {
     const selectSound = new Audio('/sounds/select.mp3');
     selectSound.volume = 0.6;
     selectSound.play().catch(e => console.log("Sound play prevented:", e));
+  };
+
+  const handleDurationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Ensure only positive integers
+    if (value === "" || /^[0-9]+$/.test(value)) {
+      setGameDuration(value);
+    }
   };
 
   if (isLoading) {
@@ -334,21 +344,18 @@ export default function CharacterSelectPage() {
               
               <div className="mb-6">
                 <Label htmlFor="duration" className="text-red-300 mb-2 block font-medium text-sm font-mono">
-                  {/* DURASI PERMAINAN */}
+                  Durasi Permainan (menit)
                 </Label>
-                <Select value={gameDuration} onValueChange={setGameDuration}>
-                  {/* <SelectTrigger className="w-full bg-black/70 border-red-800/70 text-red-400 rounded-lg hover:bg-red-900/30 transition-colors font-mono">
-                    <SelectValue placeholder="Pilih durasi" />
-                  </SelectTrigger> */}
-                  <SelectContent className="bg-black/95 text-red-400 border-red-800/50 rounded-lg font-mono backdrop-blur-sm">
-                    <SelectItem value="180">3 Menit - Cepat & Menegangkan</SelectItem>
-                    <SelectItem value="300">5 Menit - Standar</SelectItem>
-                    <SelectItem value="420">7 Menit - Panjang</SelectItem>
-                    <SelectItem value="600">10 Menit - Sangat Panjang</SelectItem>
-                    <SelectItem value="720">12 Menit - Ekstrem</SelectItem>
-                    <SelectItem value="900">15 Menit - Tantangan Akhir</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="duration"
+                  name="duration"
+                  type="number"
+                  min="1"
+                  value={gameDuration}
+                  onChange={handleDurationChange}
+                  className="bg-black/50 border-red-900/50 text-red-200 font-mono focus:border-red-400/50 focus:ring-red-400/20"
+                  placeholder="Masukkan durasi (menit)"
+                />
               </div>
 
               <div>
@@ -378,13 +385,7 @@ export default function CharacterSelectPage() {
               <div className="space-y-4">
                 <div className="flex justify-between text-red-300 font-mono text-sm">
                   <span>Durasi Permainan:</span>
-                  <span className="text-red-400">
-                    {gameDuration === "180" ? "3 Menit" :
-                     gameDuration === "300" ? "5 Menit" :
-                     gameDuration === "420" ? "7 Menit" :
-                     gameDuration === "600" ? "10 Menit" :
-                     gameDuration === "720" ? "12 Menit" : "15 Menit"}
-                  </span>
+                  <span className="text-red-400">{gameDuration} Menit</span>
                 </div>
                 <div className="flex justify-between text-red-300 font-mono text-sm">
                   <span>Jumlah Soal:</span>

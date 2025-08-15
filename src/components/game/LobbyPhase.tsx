@@ -1,4 +1,3 @@
-
 "use client";
 
 // Mengimpor dependensi yang diperlukan
@@ -7,7 +6,7 @@ import { Users, Skull, Zap, Play, Ghost, Bone, HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import SoulStatus from "./SoulStatus";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -90,6 +89,7 @@ export default function LobbyPhase({
         console.warn("⚠️ LobbyPhase: Tidak ada room_id untuk currentPlayer")
         return
       }
+    };
 
       try {
         console.log("🏠 LobbyPhase: Mengambil data ruangan untuk room_id:", currentPlayer.room_id)
@@ -214,7 +214,6 @@ export default function LobbyPhase({
     return () => clearInterval(bloodInterval)
   }, [])
 
-  // Efek flicker dan teks atmosfer
   useEffect(() => {
     const flickerInterval = setInterval(
       () => {
@@ -233,9 +232,12 @@ export default function LobbyPhase({
     }
   }, [])
 
-  // Menangani pemilihan karakter
-  const handleCharacterSelect = async () => {
+  // Menangani pemilihan karakter dengan auto-save dan menutup dialog
+  const handleCharacterSelect = async (characterValue: string) => {
     try {
+      setSelectedCharacter(characterValue);
+      console.log(`✅ LobbyPhase: Memilih karakter: ${characterValue} untuk pemain ${currentPlayer.id}`);
+
       const { error } = await supabase
         .from("players")
         .update({ character_type: selectedCharacter })
@@ -279,7 +281,6 @@ export default function LobbyPhase({
     }
   }
 
-  // Mengurutkan pemain agar currentPlayer muncul pertama
   const sortedPlayers = [...players].sort((a, b) => {
     if (a.id === currentPlayer.id) return -1
     if (b.id === currentPlayer.id) return 1
@@ -297,7 +298,6 @@ export default function LobbyPhase({
     <div className="min-h-screen bg-black relative overflow-hidden select-none">
       {/* Latar belakang bernoda darah */}
       <div className="absolute inset-0 bg-gradient-to-br from-red-900/5 via-black to-purple-900/5">
-        {/* Noda darah */}
         <div className="absolute inset-0 opacity-20">
           {[...Array(10)].map((_, i) => (
             <div
@@ -392,24 +392,6 @@ export default function LobbyPhase({
 
           <p className="text-red-400/80 text-xl font-mono animate-pulse tracking-wider">{atmosphereText}</p>
         </div>
-
-        {/* Tampilan Countdown */}
-        {/* {countdown !== null && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="fixed inset-0 flex flex-col items-center justify-center z-[1000] bg-black/80"
-            onClick={() => console.log("⏰ LobbyPhase: Countdown div dirender, countdown:", countdown)}
-          >
-            <div className="text-8xl md:text-9xl font-mono font-bold text-red-500 animate-pulse drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">
-              {countdown}
-            </div>
-            <div className="text-2xl md:text-3xl text-red-400 font-mono mt-4 tracking-wider">
-              PERMAINAN DIMULAI DALAM...
-            </div>
-          </motion.div>
-        )} */}
 
         {/* Grid Pemain */}
         <div className="max-w-5xl mx-auto mb-8 md:h-auto h-[calc(100vh-150px)] overflow-y-auto">
@@ -525,11 +507,8 @@ export default function LobbyPhase({
                     key={character.value}
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      setSelectedCharacter(character.value);
-                      console.log(`Memilih karakter: ${character.name} (${character.value})`);
-                    }}
-                    onKeyDown={(e) => e.key === "Enter" && setSelectedCharacter(character.value)}
+                    onClick={() => handleCharacterSelect(character.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCharacterSelect(character.value)}
                     className={`relative flex flex-col items-center p-3 sm:p-4 rounded-lg cursor-pointer transition-all duration-300
                       ${
                         selectedCharacter === character.value
@@ -556,21 +535,6 @@ export default function LobbyPhase({
                 ))}
               </div>
             </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsCharacterDialogOpen(false)}
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-lg w-full sm:w-auto"
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={handleCharacterSelect}
-                className="bg-white text-black hover:bg-gray-200 rounded-lg w-full sm:w-auto"
-              >
-                Simpan
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
